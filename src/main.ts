@@ -2,8 +2,11 @@ import './style.css'
 import * as THREE from 'three'
 import { GLTFLoader, GLTF } from 'three/addons/loaders/GLTFLoader.js'
 
-type Terrain = { mat: THREE.Material | THREE.Material[], geom: THREE.BufferGeometry[] }
-type Ocean = { mat: THREE.Material | THREE.Material[], geom: Record<number, THREE.BufferGeometry[]> }
+import terrainVertexShader from './terrain.vert?raw'
+import terrainFragmentShader from './terrain.frag?raw'
+
+type Terrain = { mat: THREE.MeshStandardMaterial, geom: THREE.BufferGeometry[] }
+type Ocean = { mat: THREE.MeshStandardMaterial, geom: Record<number, THREE.BufferGeometry[]> }
 
 const DIRS=[[1,0],[0,-1],[-1,0],[0,1]]
 
@@ -53,6 +56,7 @@ camera.position.setY(10)
 camera.rotateX(-45)
 
 const renderer = new THREE.WebGLRenderer()
+renderer.setClearColor('magenta', 1)
 renderer.setSize(window.innerWidth, window.innerHeight)
 app.appendChild(renderer.domElement)
 
@@ -76,7 +80,8 @@ function loadModel(path: string): Promise<GLTF> {
 
 async function loadTerrain(name: string): Promise<Terrain> {
   let gltf = await loadModel(`terrain/${name}.glb`)
-  let mat = (gltf.scene.children[0] as THREE.Mesh).material
+  let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
+  mat.alphaTest = 0.5
   let geom = [...gltf.scene.children].sort((a, b) => getnum(a.name) - getnum(b.name)).map(x => (x as THREE.Mesh).geometry)
 
   return { mat, geom }
@@ -84,12 +89,11 @@ async function loadTerrain(name: string): Promise<Terrain> {
 
 async function loadOcean(name: string): Promise<Ocean> {
   let gltf = await loadModel(`terrain/${name}.glb`)
-  let mat = (gltf.scene.children[0] as THREE.Mesh).material
+  let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
 
   let geom: Record<number, THREE.BufferGeometry[]> = {}
   gltf.scene.children.forEach(child => {
     let [c, i] = child.name.split('_').map(x => parseInt(x, 10))
-    console.log(`c: ${c}, i: ${i}`)
     geom[c] ||= new Array<THREE.BufferGeometry>(4)
     geom[c][i] = (child as THREE.Mesh).geometry
   })
@@ -105,10 +109,12 @@ async function loadAll(...names: string[]): Promise<Record<string, Terrain>> {
 
 async function load() {
   let [terrains, ocean, rivermouths] = await Promise.all([
-    loadAll('mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river'),
+    loadAll('base', 'irrigation', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river'),
     loadOcean('ocean'),
     loadOcean('rivermouths')
   ])
+  let baseTex = terrains.base.mat.map;
+  let irrigationTex = terrains.irrigation.mat.map;
 
   let rows = 20
   let cols = 30
@@ -141,14 +147,31 @@ async function load() {
         mesh = new THREE.Object3D()
         for (let k = 0; k < 4; k++) {
           let on = calcon(map, i, j, k)
-          console.log(`${on}_${k}`)
           let data = on > 7 ? rivermouths : ocean
-          let omesh = new THREE.Mesh(data.geom[on][k], data.mat)
+          let omesh = new THREE.Mesh(data.geom[on][k], new THREE.ShaderMaterial({
+            vertexShader: terrainVertexShader,
+            fragmentShader: terrainFragmentShader,
+            uniforms: {
+              baseTex: { value: baseTex },
+              terrainTex: { value: data.mat.map },
+              irrigationTex: { value: null },
+              irrigation: { value: false }
+            }
+          }))
           mesh.add(omesh)
         }
       } else {
         let calc = col === 'river' ? calcr : calcn
-        mesh = new THREE.Mesh(terrains[col].geom[calc(map, i, j)], terrains[col].mat)
+        mesh = new THREE.Mesh(terrains[col].geom[calc(map, i, j)], new THREE.ShaderMaterial({
+          vertexShader: terrainVertexShader,
+          fragmentShader: terrainFragmentShader,
+          uniforms: {
+            baseTex: { value: baseTex },
+            terrainTex: { value: terrains[col].mat.map },
+            irrigationTex: { value: irrigationTex },
+            irrigation: { value: Math.random() < 0.5 }
+          }
+        }))
       }
       mesh.position.set((cols/2)-j-0.5, 0, -i)
       scene.add(mesh)
