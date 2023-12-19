@@ -2,24 +2,47 @@ import './style.css'
 import * as THREE from 'three'
 import { GLTFLoader, GLTF } from 'three/addons/loaders/GLTFLoader.js'
 
+type Terrain = { mat: THREE.Material | THREE.Material[], geom: THREE.BufferGeometry[] }
+type Ocean = { mat: THREE.Material | THREE.Material[], geom: Record<number, THREE.BufferGeometry[]> }
+
 const DIRS=[[1,0],[0,-1],[-1,0],[0,1]]
+
+const ODIRS=[
+  [[ 0,  1], [ 1,  1], [ 1,  0]],
+  [[ 1,  0], [ 1, -1], [ 0, -1]],
+  [[-1,  0], [-1,  1], [ 0,  1]],
+  [[ 0, -1], [-1, -1], [-1,  0]]
+]
+
+const RDIRS=[
+  [[ 0,  1], [ 1,  0]],
+  [[ 1,  0], [ 0, -1]],
+  [[-1,  0], [ 0,  1]],
+  [[ 0, -1], [-1,  0]]
+]
 
 function getnum(str: string): number {
   return parseInt(str.match(/\d+/)![0], 10)
 }
 
-
-function calcn(map: string[][], i: number, j: number) {
-  let m = map[i][j]
+function calcn(map: string[][], i: number, j: number, dirs=DIRS, cmp=(i2:number,j2:number)=>map[i][j]===map[i2][j2]) {
   let c = 0
-  DIRS.forEach(([di,dj], n) => {
+  dirs.forEach(([di,dj], n) => {
     let i2 = i+di
     let j2 = j+dj
-    if (i2 >= 0 && i2 < map.length && j2 >= 0 && j2 < map[0].length && map[i2][j2]===m) {
+    if (i2 >= 0 && i2 < map.length && j2 >= 0 && j2 < map[0].length && cmp(i2,j2)) {
       c += 2**n
     }
   })
   return c
+}
+
+function calcr(map: string[][], i: number, j: number) {
+  return calcn(map, i, j, DIRS, (i2:number,j2:number)=>map[i2][j2]==='river'||map[i2][j2]==='ocean')
+}
+
+function calcon(map: string[][], i: number, j: number, oi: number) {
+  return calcn(map, i, j, ODIRS[oi], (i2,j2)=>map[i2][j2]!=='ocean')+(calcn(map, i, j, RDIRS[oi], (i2,j2)=>map[i2][j2]==='river')<<3)
 }
 
 const app = document.getElementById('app')!
@@ -51,38 +74,83 @@ function loadModel(path: string): Promise<GLTF> {
   })
 }
 
+async function loadTerrain(name: string): Promise<Terrain> {
+  let gltf = await loadModel(`terrain/${name}.glb`)
+  let mat = (gltf.scene.children[0] as THREE.Mesh).material
+  let geom = [...gltf.scene.children].sort((a, b) => getnum(a.name) - getnum(b.name)).map(x => (x as THREE.Mesh).geometry)
+
+  return { mat, geom }
+}
+
+async function loadOcean(name: string): Promise<Ocean> {
+  let gltf = await loadModel(`terrain/${name}.glb`)
+  let mat = (gltf.scene.children[0] as THREE.Mesh).material
+
+  let geom: Record<number, THREE.BufferGeometry[]> = {}
+  gltf.scene.children.forEach(child => {
+    let [c, i] = child.name.split('_').map(x => parseInt(x, 10))
+    console.log(`c: ${c}, i: ${i}`)
+    geom[c] ||= new Array<THREE.BufferGeometry>(4)
+    geom[c][i] = (child as THREE.Mesh).geometry
+  })
+
+  return { mat, geom }
+}
+
+async function loadAll(...names: string[]): Promise<Record<string, Terrain>> {
+  let terrains: Record<string, Terrain> = {}
+  await Promise.all(names.map(name => loadTerrain(name).then(x => { terrains[name] = x })))
+  return terrains
+}
+
 async function load() {
-  let [hillsModel, mountainsModel] = await Promise.all([
-    loadModel('terrain/hills.glb'),
-    loadModel('terrain/mountains.glb')
+  let [terrains, ocean, rivermouths] = await Promise.all([
+    loadAll('mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river'),
+    loadOcean('ocean'),
+    loadOcean('rivermouths')
   ])
 
-  let hillsMat = (hillsModel.scene.children[0] as THREE.Mesh).material
-  let mountainsMat = (mountainsModel.scene.children[0] as THREE.Mesh).material
-
-  let hills = [...hillsModel.scene.children].sort((a, b) => getnum(a.name) - getnum(b.name)).map(x => (x as THREE.Mesh).geometry)
-  let mountains = [...mountainsModel.scene.children].sort((a, b) => getnum(a.name) - getnum(b.name)).map(x => (x as THREE.Mesh).geometry)
-
-  let rows = 10
-  let cols = 20
+  let rows = 20
+  let cols = 30
 
   let map: string[][] = []
   for (let i = 0; i < rows; i++) {
     let row = []
     for (let j = 0; j < cols; j++) {
-      row.push(Math.random() > 0.5 ? 'mountains' : 'hills')
+      switch (Math.floor(Math.random()*12)) {
+        case 0: row.push('mountains'); break;
+        case 1: row.push('hills'); break;
+        case 2: row.push('forest'); break;
+        case 3: row.push('desert'); break;
+        case 4: row.push('arctic'); break;
+        case 5: row.push('tundra'); break;
+        case 6: row.push('grassland'); break;
+        case 7: row.push('plains'); break;
+        case 8: row.push('jungle'); break;
+        case 9: row.push('swamp'); break;
+        case 10: row.push('river'); break;
+        case 11: row.push('ocean'); break;
+      }
     }
     map.push(row)
   }
   map.forEach((row, i) => {
     row.forEach((col, j) => {
       let mesh
-      if (col === 'hills') {
-        mesh = new THREE.Mesh(hills[calcn(map, i, j)], hillsMat)
+      if (col === 'ocean') {
+        mesh = new THREE.Object3D()
+        for (let k = 0; k < 4; k++) {
+          let on = calcon(map, i, j, k)
+          console.log(`${on}_${k}`)
+          let data = on > 7 ? rivermouths : ocean
+          let omesh = new THREE.Mesh(data.geom[on][k], data.mat)
+          mesh.add(omesh)
+        }
       } else {
-        mesh = new THREE.Mesh(mountains[calcn(map, i, j)], mountainsMat)
+        let calc = col === 'river' ? calcr : calcn
+        mesh = new THREE.Mesh(terrains[col].geom[calc(map, i, j)], terrains[col].mat)
       }
-      mesh.position.set((cols/2)-j, 0, -i)
+      mesh.position.set((cols/2)-j-0.5, 0, -i)
       scene.add(mesh)
     })
   })
