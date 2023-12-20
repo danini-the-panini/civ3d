@@ -7,6 +7,7 @@ import terrainFragmentShader from './terrain.frag?raw'
 
 type Terrain = { mat: THREE.MeshStandardMaterial, geom: THREE.BufferGeometry[] }
 type Ocean = { mat: THREE.MeshStandardMaterial, geom: Record<number, THREE.BufferGeometry[]> }
+type Improvement = { mat: THREE.MeshStandardMaterial, geom: THREE.BufferGeometry }
 
 const DIRS=[[1,0],[0,-1],[-1,0],[0,1]]
 
@@ -67,8 +68,12 @@ function onWindowResize(){
 }
 window.addEventListener('resize', onWindowResize, false)
 
-const light = new THREE.AmbientLight(0xFFFFFF)
+const light = new THREE.AmbientLight(0xaaaaaa)
 scene.add(light)
+
+const dirLight = new THREE.DirectionalLight(0xFFFFFF, 2)
+dirLight.position.set(-1, 2, 1)
+scene.add(dirLight)
 
 const loader = new GLTFLoader()
 
@@ -83,6 +88,15 @@ async function loadTerrain(name: string): Promise<Terrain> {
   let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
   mat.alphaTest = 0.5
   let geom = [...gltf.scene.children].sort((a, b) => getnum(a.name) - getnum(b.name)).map(x => (x as THREE.Mesh).geometry)
+
+  return { mat, geom }
+}
+
+async function loadImprovement(name: string): Promise<Improvement> {
+  let gltf = await loadModel(`improvements/${name}.glb`)
+  let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
+  mat.alphaTest = 0.5
+  let geom = (gltf.scene.children[0] as THREE.Mesh).geometry
 
   return { mat, geom }
 }
@@ -108,13 +122,30 @@ async function loadAll(...names: string[]): Promise<Record<string, Terrain>> {
 }
 
 async function load() {
-  let [terrains, ocean, rivermouths] = await Promise.all([
-    loadAll('base', 'irrigation', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river'),
+  let [terrains, ocean, rivermouths, irrigation, mine, fortress, pollution] = await Promise.all([
+    loadAll('base', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river'),
     loadOcean('ocean'),
-    loadOcean('rivermouths')
+    loadOcean('rivermouths'),
+    loadImprovement('irrigation'),
+    loadImprovement('mine'),
+    loadImprovement('fortress'),
+    loadImprovement('pollution')
   ])
   let baseTex = terrains.base.mat.map;
-  let irrigationTex = terrains.irrigation.mat.map;
+  let irrigationTex = irrigation.mat.map;
+  let fortressTex = fortress.mat.map;
+  let pollutionTex = pollution.mat.map;
+  pollution.mat.opacity = 0.8
+  pollution.mat.alphaTest = 0.0
+  pollution.mat.transparent = true
+  pollution.mat.side = THREE.DoubleSide
+
+  let baseUniforms = {
+    baseTex: { value: baseTex },
+    irrigationTex: { value: irrigationTex },
+    fortressTex: { value: fortressTex },
+    pollutionTex: { value: pollutionTex }
+  }
 
   let rows = 20
   let cols = 30
@@ -143,6 +174,7 @@ async function load() {
   map.forEach((row, i) => {
     row.forEach((col, j) => {
       let mesh
+      let polluted = Math.random() < 0.025
       if (col === 'ocean') {
         mesh = new THREE.Object3D()
         for (let k = 0; k < 4; k++) {
@@ -152,26 +184,46 @@ async function load() {
             vertexShader: terrainVertexShader,
             fragmentShader: terrainFragmentShader,
             uniforms: {
-              baseTex: { value: baseTex },
+              ...baseUniforms,
               terrainTex: { value: data.mat.map },
-              irrigationTex: { value: null },
-              irrigation: { value: false }
+              irrigation: { value: false },
+              fortress: { value: false },
+              pollution: { value: polluted }
             }
           }))
           mesh.add(omesh)
         }
       } else {
+        let fortified = Math.random() < 0.05
         let calc = col === 'river' ? calcr : calcn
         mesh = new THREE.Mesh(terrains[col].geom[calc(map, i, j)], new THREE.ShaderMaterial({
           vertexShader: terrainVertexShader,
           fragmentShader: terrainFragmentShader,
           uniforms: {
-            baseTex: { value: baseTex },
+            ...baseUniforms,
             terrainTex: { value: terrains[col].mat.map },
-            irrigationTex: { value: irrigationTex },
-            irrigation: { value: Math.random() < 0.5 }
+            irrigation: { value: Math.random() < 0.5 },
+            fortress: { value: fortified },
+            pollution: { value: polluted }
           }
         }))
+        if (col === 'hills' || col === 'mountains') {
+          if (Math.random() < 0.5) {
+            let mineMesh = new THREE.Mesh(mine.geom, mine.mat)
+            mineMesh.position.set((cols/2)-j-0.5, 0, -i)
+            scene.add(mineMesh)
+          }
+        }
+        if (fortified) {
+          let fortMesh = new THREE.Mesh(fortress.geom, fortress.mat)
+          fortMesh.position.set((cols/2)-j-0.5, 0, -i)
+          scene.add(fortMesh)
+        }
+      }
+      if (polluted) {
+        let pollMesh = new THREE.Mesh(pollution.geom, pollution.mat)
+        pollMesh.position.set((cols/2)-j-0.5, 0, -i)
+        scene.add(pollMesh)
       }
       mesh.position.set((cols/2)-j-0.5, 0, -i)
       scene.add(mesh)
