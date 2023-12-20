@@ -7,7 +7,7 @@ import terrainFragmentShader from './terrain.frag?raw'
 
 type Terrain = { mat: THREE.MeshStandardMaterial, geom: THREE.BufferGeometry[] }
 type Ocean = { mat: THREE.MeshStandardMaterial, geom: Record<number, THREE.BufferGeometry[]> }
-type Improvement = { mat: THREE.MeshStandardMaterial, geom: THREE.BufferGeometry }
+type Thing = { mat: THREE.MeshStandardMaterial, geom: THREE.BufferGeometry }
 
 const DIRS=[[1,0],[0,-1],[-1,0],[0,1]]
 
@@ -79,12 +79,15 @@ const loader = new GLTFLoader()
 
 function loadModel(path: string): Promise<GLTF> {
   return new Promise((resolve, reject) => {
-    loader.load(path, resolve, undefined, reject)
+    loader.load(path, resolve, undefined, (error) => {
+      console.error(`Error loading ${path}`)
+      reject(error)
+    })
   })
 }
 
-async function loadTerrain(name: string): Promise<Terrain> {
-  let gltf = await loadModel(`terrain/${name}.glb`)
+async function loadTerrainLike(path: string): Promise<Terrain> {
+  let gltf = await loadModel(path)
   let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
   mat.alphaTest = 0.5
   let geom = [...gltf.scene.children].sort((a, b) => getnum(a.name) - getnum(b.name)).map(x => (x as THREE.Mesh).geometry)
@@ -92,10 +95,22 @@ async function loadTerrain(name: string): Promise<Terrain> {
   return { mat, geom }
 }
 
-async function loadImprovement(name: string): Promise<Improvement> {
+async function loadTerrain(name: string): Promise<Terrain> {
+  return loadTerrainLike(`terrain/${name}.glb`)
+}
+
+async function loadImprovement(name: string): Promise<Thing> {
   let gltf = await loadModel(`improvements/${name}.glb`)
   let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
   mat.alphaTest = 0.5
+  let geom = (gltf.scene.children[0] as THREE.Mesh).geometry
+
+  return { mat, geom }
+}
+
+async function loadResource(name: string): Promise<Thing> {
+  let gltf = await loadModel(`resources/${name}.glb`)
+  let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
   let geom = (gltf.scene.children[0] as THREE.Mesh).geometry
 
   return { mat, geom }
@@ -115,26 +130,39 @@ async function loadOcean(name: string): Promise<Ocean> {
   return { mat, geom }
 }
 
-async function loadAll(...names: string[]): Promise<Record<string, Terrain>> {
-  let terrains: Record<string, Terrain> = {}
-  await Promise.all(names.map(name => loadTerrain(name).then(x => { terrains[name] = x })))
-  return terrains
+async function loadAllThings<T>(names: string[], load: (name: string) => Promise<T>): Promise<Record<string, T>> {
+  let things: Record<string, T> = {}
+  await Promise.all(names.map(name => load(name).then(x => { things[name] = x })))
+  return things
+}
+
+async function loadAllTerrains(...names: string[]): Promise<Record<string, Terrain>> {
+  return loadAllThings(names, loadTerrain)
+}
+
+async function loadAllResources(...names: string[]): Promise<Record<string, Thing>> {
+  return loadAllThings(names, loadResource)
 }
 
 async function load() {
-  let [terrains, ocean, rivermouths, irrigation, mine, fortress, pollution] = await Promise.all([
-    loadAll('base', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river'),
+  let [terrains, resources, ocean, rivermouths, irrigation, mine, fortress, pollution, road, railroad] = await Promise.all([
+    loadAllTerrains('base', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river'),
+    loadAllResources('mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'ocean'),
     loadOcean('ocean'),
     loadOcean('rivermouths'),
     loadImprovement('irrigation'),
     loadImprovement('mine'),
     loadImprovement('fortress'),
-    loadImprovement('pollution')
+    loadImprovement('pollution'),
+    loadTerrainLike('improvements/road.glb'),
+    loadTerrainLike('improvements/railroad.glb')
   ])
   let baseTex = terrains.base.mat.map;
   let irrigationTex = irrigation.mat.map;
   let fortressTex = fortress.mat.map;
   let pollutionTex = pollution.mat.map;
+  let roadTex = road.mat.map;
+  let railroadTex = railroad.mat.map;
   pollution.mat.opacity = 0.8
   pollution.mat.alphaTest = 0.0
   pollution.mat.transparent = true
@@ -144,7 +172,9 @@ async function load() {
     baseTex: { value: baseTex },
     irrigationTex: { value: irrigationTex },
     fortressTex: { value: fortressTex },
-    pollutionTex: { value: pollutionTex }
+    pollutionTex: { value: pollutionTex },
+    roadTex: { value: roadTex },
+    railroadTex: { value: railroadTex }
   }
 
   let rows = 20
@@ -173,14 +203,14 @@ async function load() {
   }
   map.forEach((row, i) => {
     row.forEach((col, j) => {
-      let mesh
+      let object = new THREE.Object3D()
       let polluted = Math.random() < 0.025
+      let resource = Math.random() < 0.25
       if (col === 'ocean') {
-        mesh = new THREE.Object3D()
         for (let k = 0; k < 4; k++) {
           let on = calcon(map, i, j, k)
           let data = on > 7 ? rivermouths : ocean
-          let omesh = new THREE.Mesh(data.geom[on][k], new THREE.ShaderMaterial({
+          let mesh = new THREE.Mesh(data.geom[on][k], new THREE.ShaderMaterial({
             vertexShader: terrainVertexShader,
             fragmentShader: terrainFragmentShader,
             uniforms: {
@@ -188,15 +218,17 @@ async function load() {
               terrainTex: { value: data.mat.map },
               irrigation: { value: false },
               fortress: { value: false },
-              pollution: { value: polluted }
+              pollution: { value: polluted },
+              roadTile: { value: 0 },
+              railroadTile: { value: 0}
             }
           }))
-          mesh.add(omesh)
+          object.add(mesh)
         }
       } else {
         let fortified = Math.random() < 0.05
         let calc = col === 'river' ? calcr : calcn
-        mesh = new THREE.Mesh(terrains[col].geom[calc(map, i, j)], new THREE.ShaderMaterial({
+        let mesh = new THREE.Mesh(terrains[col].geom[calc(map, i, j)], new THREE.ShaderMaterial({
           vertexShader: terrainVertexShader,
           fragmentShader: terrainFragmentShader,
           uniforms: {
@@ -204,29 +236,33 @@ async function load() {
             terrainTex: { value: terrains[col].mat.map },
             irrigation: { value: Math.random() < 0.5 },
             fortress: { value: fortified },
-            pollution: { value: polluted }
+            pollution: { value: polluted },
+            roadTile: { value: 0 },
+            railroadTile: { value: 0}
           }
         }))
+        object.add(mesh)
         if (col === 'hills' || col === 'mountains') {
           if (Math.random() < 0.5) {
             let mineMesh = new THREE.Mesh(mine.geom, mine.mat)
-            mineMesh.position.set((cols/2)-j-0.5, 0, -i)
-            scene.add(mineMesh)
+            object.add(mineMesh)
           }
         }
         if (fortified) {
           let fortMesh = new THREE.Mesh(fortress.geom, fortress.mat)
-          fortMesh.position.set((cols/2)-j-0.5, 0, -i)
-          scene.add(fortMesh)
+          object.add(fortMesh)
         }
       }
       if (polluted) {
         let pollMesh = new THREE.Mesh(pollution.geom, pollution.mat)
-        pollMesh.position.set((cols/2)-j-0.5, 0, -i)
-        scene.add(pollMesh)
+        object.add(pollMesh)
       }
-      mesh.position.set((cols/2)-j-0.5, 0, -i)
-      scene.add(mesh)
+      if (resource && col !== 'river') {
+        let resMesh = new THREE.Mesh(resources[col].geom, resources[col].mat)
+        object.add(resMesh)
+      }
+      object.position.set((cols/2)-j-0.5, 0, -i)
+      scene.add(object)
     })
   })
 }

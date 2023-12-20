@@ -3,8 +3,8 @@ uniform sampler2D irrigationTex;
 uniform sampler2D pollutionTex;
 uniform sampler2D fortressTex;
 uniform sampler2D terrainTex;
-// uniform sampler2D road;
-// uniform sampler2D rail;
+uniform sampler2D roadTex;
+uniform sampler2D railroadTex;
 
 uniform bool irrigation;
 uniform bool pollution;
@@ -12,6 +12,9 @@ uniform bool fortress;
 
 varying vec2 vUv;
 varying vec2 vUv2;
+
+uniform int roadTile;
+uniform int railroadTile;
 
 vec4 combine_alpha(vec4 a, vec4 b, float alpha) {
   float alpha2 = b.a * alpha;
