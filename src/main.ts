@@ -1,6 +1,7 @@
 import './style.css'
 import * as THREE from 'three'
 import { GLTFLoader, GLTF } from 'three/addons/loaders/GLTFLoader.js'
+import MapControls from './lib/three-map-control'
 
 import terrainVertexShader from './terrain.vert?raw'
 import terrainFragmentShader from './terrain.frag?raw'
@@ -83,6 +84,15 @@ const renderer = new THREE.WebGLRenderer()
 renderer.setClearColor('magenta', 1)
 renderer.setSize(window.innerWidth, window.innerHeight)
 app.appendChild(renderer.domElement)
+
+const groundPlane = new THREE.Plane()
+
+new MapControls(camera, renderer.domElement, {
+  mode: 'plane',
+  target: groundPlane,
+  minDistance: 2.0,
+  maxDistance: 20
+})
 
 function onWindowResize(){
   camera.aspect = window.innerWidth / window.innerHeight
