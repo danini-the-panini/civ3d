@@ -10,6 +10,16 @@ type Ocean = { mat: THREE.MeshStandardMaterial, geom: Record<number, THREE.Buffe
 type Thing = { mat: THREE.MeshStandardMaterial, geom: THREE.BufferGeometry }
 
 const DIRS=[[1,0],[0,-1],[-1,0],[0,1]]
+const DIRS8=[
+  [-1,  1], [-1, 0], [-1, -1],
+  [ 0,  1],          [ 0, -1],
+  [ 1,  1], [ 0, 0], [ 1, -1]
+]
+const DIRS9=[
+  [-1,  1], [-1, 0], [-1, -1],
+  [ 0,  1], [ 0, 0], [ 0, -1],
+  [ 1,  1], [ 1, 0], [ 1, -1]
+]
 
 const ODIRS=[
   [[ 0,  1], [ 1,  1], [ 1,  0]],
@@ -29,7 +39,7 @@ function getnum(str: string): number {
   return parseInt(str.match(/\d+/)![0], 10)
 }
 
-function calcn(map: string[][], i: number, j: number, dirs=DIRS, cmp=(i2:number,j2:number)=>map[i][j]===map[i2][j2]) {
+function calcn(map: any[][], i: number, j: number, dirs=DIRS, cmp=(i2:number,j2:number)=>map[i][j]===map[i2][j2]) {
   let c = 0
   dirs.forEach(([di,dj], n) => {
     let i2 = i+di
@@ -47,6 +57,15 @@ function calcr(map: string[][], i: number, j: number) {
 
 function calcon(map: string[][], i: number, j: number, oi: number) {
   return calcn(map, i, j, ODIRS[oi], (i2,j2)=>map[i2][j2]!=='ocean')+(calcn(map, i, j, RDIRS[oi], (i2,j2)=>map[i2][j2]==='river')<<3)
+}
+
+function calcroad(roads: number[][], i: number, j: number, N=1) {
+  if (roads[i][j]<N) return 0
+  return calcn(roads, i, j, DIRS9, (i2:number,j2:number)=>roads[i2][j2]>=N)
+}
+
+function calcrailroad(roads: number[][], i: number, j: number) {
+  return calcroad(roads, i, j, 2)
 }
 
 const app = document.getElementById('app')!
@@ -201,6 +220,35 @@ async function load() {
     }
     map.push(row)
   }
+
+  let roads: number[][] = []
+  for (let i = 0; i < rows; i++) {
+    let row = []
+    for (let j = 0; j < cols; j++) {
+      row.push(0)
+    }
+    roads.push(row)
+  }
+
+  for (let k = 0; k < 10; k++) {
+    let i = Math.floor(Math.random()*rows)
+    let j = Math.floor(Math.random()*cols)
+    let dir = Math.floor(Math.random()*8)
+    let len = Math.floor(Math.random()*20)
+    let t = Math.random() < 0.2 ? 2 : 1
+    for (let l = 0; l < len; l++) {
+      if (map[i][j]==='ocean')break;
+      roads[i][j] ||= t
+      let d = DIRS8[dir]
+      i+=d[0]
+      j+=d[1]
+      if (i<0||j<0||i>=rows||j>=cols) break
+      dir += Math.floor(Math.random()*3)-1
+      if (dir >= 8) dir %= 8
+      if (dir < 0) dir += 8
+    }
+  }
+
   map.forEach((row, i) => {
     row.forEach((col, j) => {
       let object = new THREE.Object3D()
@@ -219,8 +267,8 @@ async function load() {
               irrigation: { value: false },
               fortress: { value: false },
               pollution: { value: polluted },
-              roadTile: { value: 0 },
-              railroadTile: { value: 0}
+              road: { value: 0 },
+              railroad: { value: 0 }
             }
           }))
           object.add(mesh)
@@ -237,8 +285,8 @@ async function load() {
             irrigation: { value: Math.random() < 0.5 },
             fortress: { value: fortified },
             pollution: { value: polluted },
-            roadTile: { value: 0 },
-            railroadTile: { value: 0}
+            road: { value: calcroad(roads, i, j) },
+            railroad: { value: calcrailroad(roads, i, j) }
           }
         }))
         object.add(mesh)

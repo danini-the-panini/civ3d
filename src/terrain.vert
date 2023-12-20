@@ -1,11 +1,5 @@
-uniform sampler2D roadTex;
-uniform sampler2D railroadTex;
-
 varying vec2 vUv;
 varying vec2 vUv2;
-
-uniform int roadTile;
-uniform int railroadTile;
 
 void main() {
   vUv = uv;
