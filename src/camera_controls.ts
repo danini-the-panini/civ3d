@@ -1,4 +1,4 @@
-import { PerspectiveCamera, Plane, Ray, Vector3 } from "three";
+import { Mesh, MeshBasicMaterial, PerspectiveCamera, Plane, Ray, Raycaster, SphereGeometry, Vector2, Vector3 } from "three";
 
 const SPEED = 1.0
 const ZOOM_FACTOR=0.1
@@ -13,12 +13,17 @@ export default class CameraControls {
   camera: PerspectiveCamera;
   domElement: HTMLElement;
   groundPlane: Plane;
+  dragging: boolean = false
 
   private _camDirection: Vector3;
   private _camRight: Vector3;
   private _zoomDistance: number;
   private _ray: Ray;
   private _groundPoint: Vector3;
+  private _mousePoint: Vector3;
+  private _mousePoint2: Vector3;
+  private _raycaster: Raycaster;
+  private _mouse: Vector2;
   
   constructor(camera: PerspectiveCamera, domElement: HTMLElement = document.body) {
     this.camera = camera
@@ -27,13 +32,26 @@ export default class CameraControls {
 
     this.handleKeyDown = this.handleKeyDown.bind(this)
     this.handleWheel = this.handleWheel.bind(this)
+    this.handleContextMenu = this.handleContextMenu.bind(this)
+    this.handleMouseDown = this.handleMouseDown.bind(this)
+    this.handleMouseUp = this.handleMouseUp.bind(this)
+    this.handleMouseMove = this.handleMouseMove.bind(this)
     this.domElement.addEventListener('keydown', this.handleKeyDown, false)
     this.domElement.addEventListener('wheel', this.handleWheel, false)
+    this.domElement.addEventListener('contextmenu', this.handleContextMenu, false)
+    window.addEventListener('mousedown', this.handleMouseDown, false)
+    window.addEventListener('mouseup', this.handleMouseUp, false)
+    window.addEventListener('mousemove', this.handleMouseMove, false)
+    // this.domElement.addEventListener('mouseleave', this.handleMouseUp, false)
     
     this._camDirection = new Vector3()
     this._camRight = new Vector3()
     this._ray = new Ray()
     this._groundPoint = new Vector3()
+    this._mousePoint = new Vector3()
+    this._mousePoint2 = new Vector3()
+    this._raycaster = new Raycaster()
+    this._mouse = new Vector2()
 
     this._zoomDistance = 0.5
     this._updateCameraPosition()
@@ -53,6 +71,11 @@ export default class CameraControls {
   destructer() {
     this.domElement.removeEventListener('keydown', this.handleKeyDown, false)
     this.domElement.removeEventListener('wheel', this.handleWheel, false)
+    this.domElement.removeEventListener('contextmenu', this.handleContextMenu, false)
+    window.removeEventListener('mousedown', this.handleMouseDown, false)
+    window.removeEventListener('mouseup', this.handleMouseUp, false)
+    window.removeEventListener('mousedown', this.handleMouseMove, false)
+    // this.domElement.removeEventListener('mouseleave', this.handleMouseUp, false)
   }
 
   handleKeyDown(event: KeyboardEvent) {
@@ -81,6 +104,41 @@ export default class CameraControls {
   handleWheel(event: WheelEvent) {
     let delta = (event.deltaY / 102) * ZOOM_FACTOR
     this.zoomDistance += delta
+  }
+
+  handleContextMenu(event: MouseEvent) {
+    event.preventDefault()
+  }
+
+  handleMouseDown(event: MouseEvent) {
+    if (event.button === 2) {
+      this.dragging = true
+      this._mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1)
+      console.log(this._mouse)
+      this._raycaster.setFromCamera(this._mouse, this.camera)
+      this._raycaster.ray.intersectPlane(this.groundPlane, this._mousePoint)
+    }
+  }
+
+  handleMouseUp(event: MouseEvent) {
+    if (event.button === 2) {
+      this.dragging = false
+    }
+  }
+
+  handleMouseMove(event: MouseEvent) {
+    if (this.dragging) {
+      this._mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1)
+      console.log(this._mouse)
+      this._raycaster.setFromCamera(this._mouse, this.camera)
+      this._raycaster.ray.intersectPlane(this.groundPlane, this._mousePoint2)
+
+      this._groundPoint.copy(this._mousePoint).sub(this._mousePoint2)
+      console.log(this._mousePoint)
+      console.log(this._mousePoint2)
+      console.log(this._groundPoint)
+      this.camera.position.add(this._groundPoint)
+    }
   }
 
   _updateCameraPosition() {

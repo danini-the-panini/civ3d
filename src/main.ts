@@ -79,9 +79,10 @@ const scene = new THREE.Scene()
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 camera.position.setY(10)
 camera.rotateX(-45)
+scene.add(camera)
 
 const renderer = new THREE.WebGLRenderer()
-renderer.setClearColor('magenta', 1)
+renderer.setClearColor('#719230', 1)
 renderer.setSize(window.innerWidth, window.innerHeight)
 app.appendChild(renderer.domElement)
 
