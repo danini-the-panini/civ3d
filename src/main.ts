@@ -172,7 +172,7 @@ async function loadAllResources(...names: string[]): Promise<Record<string, Thin
 }
 
 async function load() {
-  let [terrains, resources, ocean, rivermouths, irrigation, mine, fortress, pollution, road, railroad] = await Promise.all([
+  let [terrains, resources, ocean, rivermouths, irrigation, mine, fortress, pollution, hut, road, railroad] = await Promise.all([
     loadAllTerrains('base', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river'),
     loadAllResources('mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'ocean'),
     loadOcean('ocean'),
@@ -181,6 +181,7 @@ async function load() {
     loadImprovement('mine'),
     loadImprovement('fortress'),
     loadImprovement('pollution'),
+    loadImprovement('hut'),
     loadTerrainLike('improvements/road.glb'),
     loadTerrainLike('improvements/railroad.glb')
   ])
@@ -286,6 +287,10 @@ async function load() {
     if (tile.resource && biome !== BiomeType.Rivers) {
       let resMesh = new THREE.Mesh(resources[biome].geom, resources[biome].mat)
       object.add(resMesh)
+    }
+    if (tile.hut && biome !== BiomeType.Ocean) {
+      let hutMesh = new THREE.Mesh(hut.geom, hut.mat)
+      object.add(hutMesh)
     }
     object.position.set((WIDTH/2)-x-0.5, 0, -y)
     scene.add(object)
