@@ -1,7 +1,7 @@
 import './style.css'
 import * as THREE from 'three'
 import { GLTFLoader, GLTF } from 'three/addons/loaders/GLTFLoader.js'
-import MapControls from './lib/three-map-control'
+import CameraControls from './camera_controls'
 
 import terrainVertexShader from './terrain.vert?raw'
 import terrainFragmentShader from './terrain.frag?raw'
@@ -85,14 +85,7 @@ renderer.setClearColor('magenta', 1)
 renderer.setSize(window.innerWidth, window.innerHeight)
 app.appendChild(renderer.domElement)
 
-const groundPlane = new THREE.Plane()
-
-new MapControls(camera, renderer.domElement, {
-  mode: 'plane',
-  target: groundPlane,
-  minDistance: 2.0,
-  maxDistance: 20
-})
+new CameraControls(camera)
 
 function onWindowResize(){
   camera.aspect = window.innerWidth / window.innerHeight
@@ -237,7 +230,7 @@ async function load() {
   world.eachTile((tile, [x, y]) => {
     let biome = tile.biome.type
     let object = new THREE.Object3D()
-    let polluted = Math.random() < 0.025
+    let polluted = false&&Math.random() < 0.025
     if (tile.biome.type === BiomeType.Ocean) {
       for (let k = 0; k < 4; k++) {
         let on = calcon(world, [x, y], k)
@@ -258,7 +251,7 @@ async function load() {
         object.add(mesh)
       }
     } else {
-      let fortified = Math.random() < 0.05
+      let fortified = false&&Math.random() < 0.05
       let calc = biome === BiomeType.Rivers ? calcr : calcn
       let mesh = new THREE.Mesh(terrains[biome].geom[calc(world, [x, y])], new THREE.ShaderMaterial({
         vertexShader: terrainVertexShader,
@@ -266,7 +259,7 @@ async function load() {
         uniforms: {
           ...baseUniforms,
           terrainTex: { value: terrains[biome].mat.map },
-          irrigation: { value: Math.random() < 0.5 },
+          irrigation: { value: false&&Math.random() < 0.5 },
           fortress: { value: fortified },
           pollution: { value: polluted },
           road: { value: calcroad(world, [x, y]) },
@@ -275,7 +268,7 @@ async function load() {
       }))
       object.add(mesh)
       if (biome === BiomeType.Hills || biome === BiomeType.Mountains) {
-        if (Math.random() < 0.3) {
+        if (false&&Math.random() < 0.3) {
           let mineMesh = new THREE.Mesh(mine.geom, mine.mat)
           object.add(mineMesh)
         }
