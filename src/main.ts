@@ -143,6 +143,14 @@ async function loadResource(name: string): Promise<Thing> {
   return { mat, geom }
 }
 
+async function loadUnit(name: string): Promise<Thing> {
+  let gltf = await loadModel(`units/${name}.glb`)
+  let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
+  let geom = (gltf.scene.children[0] as THREE.Mesh).geometry
+
+  return { mat, geom }
+}
+
 async function loadOcean(name: string): Promise<Ocean> {
   let gltf = await loadModel(`terrain/${name}.glb`)
   let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
@@ -171,8 +179,12 @@ async function loadAllResources(...names: string[]): Promise<Record<string, Thin
   return loadAllThings(names, loadResource)
 }
 
+async function loadAllUnits(...names: string[]): Promise<Record<string, Thing>> {
+  return loadAllThings(names, loadUnit)
+}
+
 async function load() {
-  let [terrains, resources, ocean, rivermouths, irrigation, mine, fortress, pollution, hut, road, railroad] = await Promise.all([
+  let [terrains, resources, ocean, rivermouths, irrigation, mine, fortress, pollution, hut, road, railroad, units] = await Promise.all([
     loadAllTerrains('base', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river'),
     loadAllResources('mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'ocean'),
     loadOcean('ocean'),
@@ -183,7 +195,10 @@ async function load() {
     loadImprovement('pollution'),
     loadImprovement('hut'),
     loadTerrainLike('improvements/road.glb'),
-    loadTerrainLike('improvements/railroad.glb')
+    loadTerrainLike('improvements/railroad.glb'),
+    loadAllUnits('armor', 'artillery', 'battleship', 'bomber', 'cannon', 'caravan', 'carrier', 'catapult', 'cavalry', 'chariot', 'cruiser',
+      'diplomat', 'fighter', 'frigate', 'ironclad', 'knights', 'legion', 'mech_inf', 'militia', 'musketeers', 'nuclear', 'phalanx', 'rifleman',
+      'riflemen', 'sail', 'settlers', 'submarine', 'transport', 'trireme')
   ])
   let baseTex = terrains.base.mat.map;
   let irrigationTex = irrigation.mat.map;
@@ -295,6 +310,13 @@ async function load() {
     object.position.set((WIDTH/2)-x-0.5, 0, -y)
     scene.add(object)
   })
+
+  let allUnits = Object.values(units)
+  for (let i = 0; i < allUnits.length; i++) {
+    let object = new THREE.Mesh(allUnits[i].geom, allUnits[i].mat)
+    object.position.set((WIDTH/2)-i-0.5, 0, -HEIGHT/2)
+    scene.add(object)
+  }
 }
 load()
 

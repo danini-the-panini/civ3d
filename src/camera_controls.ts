@@ -114,7 +114,6 @@ export default class CameraControls {
     if (event.button === 2) {
       this.dragging = true
       this._mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1)
-      console.log(this._mouse)
       this._raycaster.setFromCamera(this._mouse, this.camera)
       this._raycaster.ray.intersectPlane(this.groundPlane, this._mousePoint)
     }
@@ -129,14 +128,10 @@ export default class CameraControls {
   handleMouseMove(event: MouseEvent) {
     if (this.dragging) {
       this._mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1)
-      console.log(this._mouse)
       this._raycaster.setFromCamera(this._mouse, this.camera)
       this._raycaster.ray.intersectPlane(this.groundPlane, this._mousePoint2)
 
       this._groundPoint.copy(this._mousePoint).sub(this._mousePoint2)
-      console.log(this._mousePoint)
-      console.log(this._mousePoint2)
-      console.log(this._groundPoint)
       this.camera.position.add(this._groundPoint)
     }
   }
