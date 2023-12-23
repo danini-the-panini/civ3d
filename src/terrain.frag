@@ -5,6 +5,7 @@ uniform sampler2D fortressTex;
 uniform sampler2D terrainTex;
 uniform sampler2D roadTex;
 uniform sampler2D railroadTex;
+uniform sampler2D fogTex;
 
 uniform bool irrigation;
 uniform bool pollution;
@@ -15,6 +16,26 @@ varying vec2 vUv2;
 
 uniform int road;
 uniform int railroad;
+uniform int fog;
+
+const vec2[] wangmap = vec2[16](
+  vec2(0.0,  0.0),  //  0 (0,0)
+  vec2(0.25, 0.0),  //  1 (1,0)
+  vec2(0.5,  0.0),  //  2 (2,0)
+  vec2(0.0,  0.25), //  3 (0,1)
+  vec2(0.0,  0.75), //  4 (0,3)
+  vec2(0.0,  0.5),  //  5 (0,2)
+  vec2(0.25, 0.75), //  6 (1,3)
+  vec2(0.25, 0.5),  //  7 (1,2)
+  vec2(0.75, 0.75), //  8 (3,3)
+  vec2(0.75, 0.0),  //  9 (3,0)
+  vec2(0.5,  0.75), // 10 (2,3)
+  vec2(0.5,  0.25), // 11 (2,1)
+  vec2(0.75, 0.5),  // 12 (3,2)
+  vec2(0.75, 0.25), // 13 (3,1)
+  vec2(0.5,  0.5),  // 14 (2,2)
+  vec2(0.25, 0.25)  // 15 (1,1)
+);
 
 vec4 combine_alpha(vec4 a, vec4 b, float alpha) {
   float alpha2 = b.a * alpha;
@@ -60,6 +81,9 @@ void main() {
   if (fortress) {
     col = combine_alpha(col, texture2D(fortressTex, vUv2), 0.6);
   }
+  vec2 fuv = vUv2/4.0+wangmap[fog];
+  fuv = vec2(fuv.x, 1.0-fuv.y);
+  col = combine(col, texture2D(fogTex, fuv));
 
   gl_FragColor = col;
 }

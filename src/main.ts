@@ -1,5 +1,4 @@
 import './style.css'
-import * as THREE from 'three'
 import { GLTFLoader, GLTF } from 'three/addons/loaders/GLTFLoader.js'
 import CameraControls from './camera_controls'
 
@@ -9,10 +8,22 @@ import WorldGenerator from './world_generator'
 import { BiomeType } from './biome'
 import { Road } from './tile'
 import World, { HEIGHT, Point, WIDTH } from './world'
+import { AmbientLight,
+  BufferGeometry,
+  DirectionalLight,
+  DoubleSide,
+  Mesh,
+  MeshStandardMaterial,
+  Object3D,
+  PerspectiveCamera,
+  Scene,
+  ShaderMaterial,
+  WebGLRenderer
+} from 'three'
+import { Thing } from './gltf_helpers'
 
-type Terrain = { mat: THREE.MeshStandardMaterial, geom: THREE.BufferGeometry[] }
-type Ocean = { mat: THREE.MeshStandardMaterial, geom: Record<number, THREE.BufferGeometry[]> }
-type Thing = { mat: THREE.MeshStandardMaterial, geom: THREE.BufferGeometry }
+type Terrain = { mat: MeshStandardMaterial, geom: BufferGeometry[] }
+type Ocean = { mat: MeshStandardMaterial, geom: Record<number, BufferGeometry[]> }
 
 const DIRS: Point[] = [[0,1],[-1,0],[0,-1],[1,0]]
 const DIRS8: Point[] = [
@@ -56,33 +67,36 @@ function calcn(world: World, [x, y]: Point, dirs=DIRS, cmp=([x2,y2]:Point)=>worl
   return c
 }
 
-function calcr(world: World, p: Point) {
+function calcr(world: World, p: Point): number {
   return calcn(world, p, DIRS, ([x2,y2])=>world.get(x2,y2).biome.type===BiomeType.Rivers||world.get(x2,y2).biome.type===BiomeType.Ocean)
 }
 
-function calcon(world: World, p: Point, oi: number) {
+function calcon(world: World, p: Point, oi: number): number {
   return calcn(world, p, ODIRS[oi], ([x2,y2])=>world.get(x2, y2).biome.type!==BiomeType.Ocean)+(calcn(world, p, RDIRS[oi], ([x2,y2])=>world.get(x2,y2).biome.type===BiomeType.Rivers)<<3)
 }
 
-function calcroad(world: World, p: Point, N=Road.Road) {
+function calcroad(world: World, p: Point, N=Road.Road): number {
   if (world.get(...p).road < N) return 0
   return calcn(world, p, DIRS9, ([x2,y2])=>world.get(x2,y2).road>=N)
 }
 
-function calcrailroad(world: World, p: Point) {
+function calcrailroad(world: World, p: Point): number {
   return calcroad(world, p, Road.Railroad)
+}
+
+function calcf(world: World, p: Point): number {
+  return calcn(world, p, DIRS, ([x2,y2])=>world.get(x2,y2).visible)
 }
 
 const app = document.getElementById('app')!
 
-const scene = new THREE.Scene()
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+const scene = new Scene()
+const camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 camera.position.setY(10)
 camera.rotateX(-45)
 scene.add(camera)
 
-const renderer = new THREE.WebGLRenderer()
-renderer.setClearColor('#719230', 1)
+const renderer = new WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
 app.appendChild(renderer.domElement)
 
@@ -95,10 +109,10 @@ function onWindowResize(){
 }
 window.addEventListener('resize', onWindowResize, false)
 
-const light = new THREE.AmbientLight(0xaaaaaa)
+const light = new AmbientLight(0xaaaaaa)
 scene.add(light)
 
-const dirLight = new THREE.DirectionalLight(0xFFFFFF, 2)
+const dirLight = new DirectionalLight(0xFFFFFF, 2)
 dirLight.position.set(-1, 2, 1)
 scene.add(dirLight)
 
@@ -115,9 +129,9 @@ function loadModel(path: string): Promise<GLTF> {
 
 async function loadTerrainLike(path: string): Promise<Terrain> {
   let gltf = await loadModel(path)
-  let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
+  let mat = (gltf.scene.children[0] as Mesh).material as MeshStandardMaterial
   mat.alphaTest = 0.5
-  let geom = [...gltf.scene.children].sort((a, b) => getnum(a.name) - getnum(b.name)).map(x => (x as THREE.Mesh).geometry)
+  let geom = [...gltf.scene.children].sort((a, b) => getnum(a.name) - getnum(b.name)).map(x => (x as Mesh).geometry)
 
   return { mat, geom }
 }
@@ -128,38 +142,38 @@ async function loadTerrain(name: string): Promise<Terrain> {
 
 async function loadImprovement(name: string): Promise<Thing> {
   let gltf = await loadModel(`improvements/${name}.glb`)
-  let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
+  let mat = (gltf.scene.children[0] as Mesh).material as MeshStandardMaterial
   mat.alphaTest = 0.5
-  let geom = (gltf.scene.children[0] as THREE.Mesh).geometry
+  let geom = (gltf.scene.children[0] as Mesh).geometry
 
   return { mat, geom }
 }
 
 async function loadResource(name: string): Promise<Thing> {
   let gltf = await loadModel(`resources/${name}.glb`)
-  let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
-  let geom = (gltf.scene.children[0] as THREE.Mesh).geometry
+  let mat = (gltf.scene.children[0] as Mesh).material as MeshStandardMaterial
+  let geom = (gltf.scene.children[0] as Mesh).geometry
 
   return { mat, geom }
 }
 
 async function loadUnit(name: string): Promise<Thing> {
   let gltf = await loadModel(`units/${name}.glb`)
-  let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
-  let geom = (gltf.scene.children[0] as THREE.Mesh).geometry
+  let mat = (gltf.scene.children[0] as Mesh).material as MeshStandardMaterial
+  let geom = (gltf.scene.children[0] as Mesh).geometry
 
   return { mat, geom }
 }
 
 async function loadOcean(name: string): Promise<Ocean> {
   let gltf = await loadModel(`terrain/${name}.glb`)
-  let mat = (gltf.scene.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
+  let mat = (gltf.scene.children[0] as Mesh).material as MeshStandardMaterial
 
-  let geom: Record<number, THREE.BufferGeometry[]> = {}
+  let geom: Record<number, BufferGeometry[]> = {}
   gltf.scene.children.forEach(child => {
     let [c, i] = child.name.split('_').map(x => parseInt(x, 10))
-    geom[c] ||= new Array<THREE.BufferGeometry>(4)
-    geom[c][i] = (child as THREE.Mesh).geometry
+    geom[c] ||= new Array<BufferGeometry>(4)
+    geom[c][i] = (child as Mesh).geometry
   })
 
   return { mat, geom }
@@ -185,7 +199,7 @@ async function loadAllUnits(...names: string[]): Promise<Record<string, Thing>> 
 
 async function load() {
   let [terrains, resources, ocean, rivermouths, irrigation, mine, fortress, pollution, hut, road, railroad, units] = await Promise.all([
-    loadAllTerrains('base', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river'),
+    loadAllTerrains('base', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river', 'fog'),
     loadAllResources('mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'ocean'),
     loadOcean('ocean'),
     loadOcean('rivermouths'),
@@ -206,10 +220,11 @@ async function load() {
   let pollutionTex = pollution.mat.map;
   let roadTex = road.mat.map;
   let railroadTex = railroad.mat.map;
+  let fogTex = terrains.fog.mat.map;
   pollution.mat.opacity = 0.8
   pollution.mat.alphaTest = 0.0
   pollution.mat.transparent = true
-  pollution.mat.side = THREE.DoubleSide
+  pollution.mat.side = DoubleSide
 
   let baseUniforms = {
     baseTex: { value: baseTex },
@@ -217,10 +232,15 @@ async function load() {
     fortressTex: { value: fortressTex },
     pollutionTex: { value: pollutionTex },
     roadTex: { value: roadTex },
-    railroadTex: { value: railroadTex }
+    railroadTex: { value: railroadTex },
+    fogTex: { value: fogTex }
   }
 
   let world = new WorldGenerator(1, 1, 1, 1).generate()
+
+  world.eachTile(tile => {
+    tile.visible = Math.random() < 0.9
+  })
 
   for (let k = 0; k < 10; k++) {
     let x = Math.floor(Math.random()*WIDTH)
@@ -246,13 +266,14 @@ async function load() {
 
   world.eachTile((tile, [x, y]) => {
     let biome = tile.biome.type
-    let object = new THREE.Object3D()
-    let polluted = false&&Math.random() < 0.025
+    let object = new Object3D()
+    let polluted = Math.random() < 0.025
+    let fog = calcf(world, [x, y])
     if (tile.biome.type === BiomeType.Ocean) {
       for (let k = 0; k < 4; k++) {
         let on = calcon(world, [x, y], k)
         let data = on > 7 ? rivermouths : ocean
-        let mesh = new THREE.Mesh(data.geom[on][k], new THREE.ShaderMaterial({
+        let mesh = new Mesh(data.geom[on][k], new ShaderMaterial({
           vertexShader: terrainVertexShader,
           fragmentShader: terrainFragmentShader,
           uniforms: {
@@ -262,58 +283,61 @@ async function load() {
             fortress: { value: false },
             pollution: { value: polluted },
             road: { value: 0 },
-            railroad: { value: 0 }
+            railroad: { value: 0 },
+            fog: { value: fog }
           }
         }))
         object.add(mesh)
       }
     } else {
-      let fortified = false&&Math.random() < 0.05
+      let fortified = Math.random() < 0.05
       let calc = biome === BiomeType.Rivers ? calcr : calcn
-      let mesh = new THREE.Mesh(terrains[biome].geom[calc(world, [x, y])], new THREE.ShaderMaterial({
+      let mesh = new Mesh(terrains[biome].geom[calc(world, [x, y])], new ShaderMaterial({
         vertexShader: terrainVertexShader,
         fragmentShader: terrainFragmentShader,
         uniforms: {
           ...baseUniforms,
           terrainTex: { value: terrains[biome].mat.map },
-          irrigation: { value: false&&Math.random() < 0.5 },
+          irrigation: { value: Math.random() < 0.5 },
           fortress: { value: fortified },
           pollution: { value: polluted },
           road: { value: calcroad(world, [x, y]) },
-          railroad: { value: calcrailroad(world, [x, y]) }
+          railroad: { value: calcrailroad(world, [x, y]) },
+          fog: { value: fog }
         }
       }))
       object.add(mesh)
       if (biome === BiomeType.Hills || biome === BiomeType.Mountains) {
-        if (false&&Math.random() < 0.3) {
-          let mineMesh = new THREE.Mesh(mine.geom, mine.mat)
+        if (Math.random() < 0.3) {
+          let mineMesh = new Mesh(mine.geom, mine.mat)
           object.add(mineMesh)
         }
       }
       if (fortified) {
-        let fortMesh = new THREE.Mesh(fortress.geom, fortress.mat)
+        let fortMesh = new Mesh(fortress.geom, fortress.mat)
         object.add(fortMesh)
       }
     }
     if (polluted) {
-      let pollMesh = new THREE.Mesh(pollution.geom, pollution.mat)
+      let pollMesh = new Mesh(pollution.geom, pollution.mat)
       object.add(pollMesh)
     }
     if (tile.resource && biome !== BiomeType.Rivers) {
-      let resMesh = new THREE.Mesh(resources[biome].geom, resources[biome].mat)
+      let resMesh = new Mesh(resources[biome].geom, resources[biome].mat)
       object.add(resMesh)
     }
     if (tile.hut && biome !== BiomeType.Ocean) {
-      let hutMesh = new THREE.Mesh(hut.geom, hut.mat)
+      let hutMesh = new Mesh(hut.geom, hut.mat)
       object.add(hutMesh)
     }
     object.position.set((WIDTH/2)-x-0.5, 0, -y)
+    object.visible = tile.visible
     scene.add(object)
   })
 
   let allUnits = Object.values(units)
   for (let i = 0; i < allUnits.length; i++) {
-    let object = new THREE.Mesh(allUnits[i].geom, allUnits[i].mat)
+    let object = new Mesh(allUnits[i].geom, allUnits[i].mat)
     object.position.set((WIDTH/2)-i-0.5, 0, -HEIGHT/2)
     scene.add(object)
   }
