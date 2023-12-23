@@ -1,4 +1,4 @@
-import { Mesh, MeshBasicMaterial, PerspectiveCamera, Plane, Ray, Raycaster, SphereGeometry, Vector2, Vector3 } from "three";
+import { Camera, Plane, Ray, Raycaster, Vector2, Vector3 } from "three";
 
 const SPEED = 1.0
 const ZOOM_FACTOR=0.1
@@ -10,7 +10,7 @@ function easeInOut(x: number, a: number = 2.0) {
 }
 
 export default class CameraControls {
-  camera: PerspectiveCamera;
+  camera: Camera;
   domElement: HTMLElement;
   groundPlane: Plane;
   dragging: boolean = false
@@ -25,7 +25,7 @@ export default class CameraControls {
   private _raycaster: Raycaster;
   private _mouse: Vector2;
   
-  constructor(camera: PerspectiveCamera, domElement: HTMLElement = document.body) {
+  constructor(camera: Camera, domElement: HTMLElement = document.body) {
     this.camera = camera
     this.domElement = domElement
     this.groundPlane = new Plane(new Vector3(0, 1, 0), 0)
@@ -68,7 +68,7 @@ export default class CameraControls {
     return this._zoomDistance
   }
 
-  destructer() {
+  destroy() {
     this.domElement.removeEventListener('keydown', this.handleKeyDown, false)
     this.domElement.removeEventListener('wheel', this.handleWheel, false)
     this.domElement.removeEventListener('contextmenu', this.handleContextMenu, false)
