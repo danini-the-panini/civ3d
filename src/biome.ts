@@ -52,7 +52,7 @@ export default class Biome {
     this.type = type
   }
 
-  baseAttributes(): [number, number, number] {
+  get baseAttributes(): [number, number, number] {
     switch (this.type) {
       case BiomeType.Arctic:     return [0, 0, 0]
       case BiomeType.Desert:     return [0, 1, 0]
@@ -69,7 +69,7 @@ export default class Biome {
     }
   }
 
-  specialAttributes(): [number, number, number] {
+  get specialAttributes(): [number, number, number] {
     switch (this.type) {
       case BiomeType.Arctic:    return [2, 0, 0]
       case BiomeType.Desert:    return [3, 1, 0]
@@ -86,7 +86,7 @@ export default class Biome {
     }
   }
 
-  movementCost(): [number, number] {
+  get movementCost(): [number, number] {
     switch (this.type) {
       case BiomeType.Arctic:    return [0.0, 1.0]
       case BiomeType.Desert:    return [0.0, 1.0]
@@ -103,7 +103,7 @@ export default class Biome {
     }
   }
 
-  defenseBonus(): [number, number] {
+  get defenseBonus(): [number, number] {
     switch (this.type) {
       case BiomeType.Arctic:    return [0.0, 1.0]
       case BiomeType.Desert:    return [0.0, 1.0]
@@ -120,7 +120,7 @@ export default class Biome {
     }
   }
 
-  irrigation(): Imp {
+  get irrigation(): Imp {
     switch (this.type) {
       case BiomeType.Arctic:    return NA
       case BiomeType.Desert:    return Yes(1)
@@ -137,7 +137,7 @@ export default class Biome {
     }
   }
 
-  mine(): Imp {
+  get mine(): Imp {
     switch (this.type) {
       case BiomeType.Arctic:    return NA
       case BiomeType.Desert:    return Yes(1)
@@ -154,7 +154,7 @@ export default class Biome {
     }
   }
 
-  roadTrade(): number {
+  get roadTrade(): number {
     switch (this.type) {
       case BiomeType.Arctic:    return 0
       case BiomeType.Desert:    return 1

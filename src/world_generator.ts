@@ -1,4 +1,5 @@
 import Biome, { BiomeType } from "./biome"
+import { irand } from "./helpers"
 import Tile from "./tile"
 import World, { BFC_W_CENTRE, DIAGONALS, HEIGHT, NEIGHBOURS, Point, WIDTH } from "./world"
 
@@ -35,10 +36,6 @@ function eachPoint(f: (p: Point) => void) {
 
 function eachTile<T>(layer: Layer<T>, f: (t: T, p: Point) => void) {
   eachPoint(p => f(get(layer, p), p))
-}
-
-function irand(i: number): number {
-  return Math.floor(Math.random() * i)
 }
 
 function createLayer<T>(fill: T): Layer<T> {
@@ -93,6 +90,7 @@ export default class WorldGenerator {
 
     return new World(p => new Tile(
       get(biomes, p),
+      p,
       this.hasResource(p, get(biomes, p)),
       this.hasHut(p, get(biomes, p)),
       this.calcLandValue(biomes, p)

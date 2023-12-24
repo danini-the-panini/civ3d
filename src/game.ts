@@ -19,6 +19,9 @@ import CameraControls from "./camera_controls";
 import { Road } from "./tile";
 import World, { Point, HEIGHT, WIDTH } from "./world";
 import WorldGenerator from "./world_generator";
+import { irand } from './helpers';
+import Player from './player';
+import Unit, { UnitType } from './unit';
 
 type Terrain = { mat: MeshStandardMaterial, geom: BufferGeometry[] }
 type Ocean = { mat: MeshStandardMaterial, geom: Record<number, BufferGeometry[]> }
@@ -157,6 +160,10 @@ async function loadAllUnits(...names: string[]): Promise<Record<string, Thing>> 
   return loadAllThings(names, loadUnit)
 }
 
+function position3d(x: number, y: number): [number, number, number] {
+  return [(WIDTH/2)-x-0.5, 0, -y]
+}
+
 export default class Game extends GameState {
   cameraControls: CameraControls;
   navBar!: HTMLDivElement;
@@ -168,6 +175,9 @@ export default class Game extends GameState {
   goldDisplay!: HTMLDivElement;
   taxDisplay!: HTMLDivElement;
   world: World;
+  turn: number = 0
+  players: Player[] = []
+  units!: Record<string, Thing>
 
   constructor(ui: HTMLElement) {
     super(ui)
@@ -203,8 +213,8 @@ export default class Game extends GameState {
       loadTerrainLike('improvements/road.glb'),
       loadTerrainLike('improvements/railroad.glb'),
       loadAllUnits('armor', 'artillery', 'battleship', 'bomber', 'cannon', 'caravan', 'carrier', 'catapult', 'cavalry', 'chariot', 'cruiser',
-        'diplomat', 'fighter', 'frigate', 'ironclad', 'knights', 'legion', 'mech_inf', 'militia', 'musketeers', 'nuclear', 'phalanx', 'rifleman',
-        'riflemen', 'sail', 'settlers', 'submarine', 'transport', 'trireme')
+        'diplomat', 'fighter', 'frigate', 'ironclad', 'knights', 'legion', 'mech_inf', 'militia', 'musketeers', 'nuclear', 'phalanx', 'riflemen',
+        'sail', 'settlers', 'submarine', 'transport', 'trireme')
     ])
     let baseTex = terrains.base.mat.map;
     let irrigationTex = irrigation.mat.map;
@@ -217,6 +227,8 @@ export default class Game extends GameState {
     pollution.mat.alphaTest = 0.0
     pollution.mat.transparent = true
     pollution.mat.side = DoubleSide
+
+    this.units = units
   
     let baseUniforms = {
       baseTex: { value: baseTex },
@@ -320,17 +332,12 @@ export default class Game extends GameState {
         let hutMesh = new Mesh(hut.geom, hut.mat)
         object.add(hutMesh)
       }
-      object.position.set((WIDTH/2)-x-0.5, 0, -y)
+      object.position.set(...position3d(x, y))
       object.visible = tile.visible
       this.scene.add(object)
     })
-  
-    let allUnits = Object.values(units)
-    for (let i = 0; i < allUnits.length; i++) {
-      let object = new Mesh(allUnits[i].geom, allUnits[i].mat)
-      object.position.set((WIDTH/2)-i-0.5, 0, -HEIGHT/2)
-      this.scene.add(object)
-    }
+
+    this.spawnFirstSettler()
   }
 
   onEnter() {
@@ -392,6 +399,38 @@ export default class Game extends GameState {
     this.sideBar.append(currentInfo)
 
     this.app.append(this.sideBar)
+  }
+
+  spawnFirstSettler() {
+    this.players.push(new Player())
+
+    for (let i = 0; i < 2000; i++) {
+      let x = irand(WIDTH)
+      let y = irand(HEIGHT)
+      let tile = this.world.get(x, y)
+      if (tile.biome.type === BiomeType.Ocean) continue
+      if (tile.landValue < (12 - Math.floor(i/32))) continue
+      //  if the distance to the closest enemy city (or settler for turn 0) is smaller than (10 - loopCounter/64), loop back to 1.
+      let bcount = 0
+      this.world.eachInContinent([x, y], t => {
+        if (t.biome.type === BiomeType.Plains || t.biome.type === BiomeType.Grassland || t.biome.type === BiomeType.Rivers) {
+          bcount++
+        }
+      })
+      if (bcount < (32 - Math.floor(this.turn / 16))) continue
+      // if the square's continent already contains cities, and current year is after 0, loop back to 1.
+      if (tile.hut) continue
+
+      let settler = new Unit(UnitType.Settlers, [x, y])
+      let object = new Mesh(this.units.settlers.geom, this.units.settlers.mat)
+      object.position.set(...position3d(x, y))
+      this.scene.add(object)
+      this.players[0].units.push(settler)
+
+      return
+    }
+
+    console.log("no suitable spawn point found :(")
   }
 
   onLeave() {

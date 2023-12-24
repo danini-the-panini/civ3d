@@ -1,3 +1,5 @@
+import { BiomeType } from "./biome"
+import Continent from "./continent"
 import Tile from "./tile"
 
 export type Point = [number, number]
@@ -19,6 +21,7 @@ export const BFC_W_CENTRE = [[0, 0], ...BFC]
 
 export default class World {
   tiles: Tile[][]
+  continents: Continent[] = []
 
   constructor(setter: (p: Point) => Tile) {
     this.tiles = new Array(HEIGHT)
@@ -29,6 +32,56 @@ export default class World {
       }
       this.tiles[y] = row
     }
+
+    for (let y = 0; y < HEIGHT; y++) {
+      for (let x = 0; x < WIDTH; x++) {
+        let tile = this.get(x, y)
+
+        let north = this.getMaybe(x, y - 1)
+        let west = this.getMaybe(x - 1, y)
+
+        if (north?.continent && north.isOcean === tile.isOcean) {
+          north.continent.addTile(tile)
+        } else if (west?.continent && west.isOcean === tile.isOcean) {
+          west.continent.addTile(tile)
+        } else {
+          let continent = new Continent()
+          this.continents.push(continent)
+          continent.addTile(tile)
+        }
+
+        if (!north || !west) continue
+        if (north.isOcean !== west.isOcean) continue
+
+        if (north?.continent && west?.continent) {
+          north.continent.merge(west.continent)
+        }
+      }
+    }
+
+    for (let y = 0; y < HEIGHT; y++) {
+      for (let x = 0; x < WIDTH; x++) {
+        let tile = this.get(x, y)
+        if (tile.biome.type === BiomeType.Ocean) continue
+
+        let north = this.getMaybe(x, y - 1)
+        let west = this.getMaybe(x - 1, y)
+
+        if (!north || !west) continue
+        if (north.isOcean !== west.isOcean) continue
+
+        if (north?.continent && west?.continent) {
+          north.continent.merge(west.continent)
+        }
+      }
+    }
+  }
+
+  getMaybe(x: number, y: number): Tile | null {
+    if (x < 0) return null
+    if (x >= WIDTH) return null
+    if (y < 0 || y >= HEIGHT) return null
+    return this.tiles[y][x]
   }
 
   get(x: number, y: number): Tile {
@@ -81,5 +134,10 @@ export default class World {
 
   static delta(p1: Point, p2: Point): Point {
     return [World.deltaX(p1[0], p2[0]), World.deltaY(p1[1], p2[1])]
+  }
+
+  eachInContinent([x, y]: Point, f: (t: Tile, p: Point) => void) {
+    let tile = this.get(x, y)
+    tile.continent?.tiles.forEach(t => f(t, t.position))
   }
 }
