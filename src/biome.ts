@@ -170,4 +170,21 @@ export default class Biome {
       case BiomeType.Tundra:    return 0
     }
   }
+
+  score(resource: boolean): number {
+    switch (this.type) {
+      case BiomeType.Arctic:    return resource ? 6  : 0
+      case BiomeType.Desert:    return resource ? 12 : 3
+      case BiomeType.Forest:    return resource ? 13 : 7
+      case BiomeType.Grassland: return resource ? 8  : 8
+      case BiomeType.Hills:     return resource ? 10 : 6
+      case BiomeType.Jungle:    return resource ? 3  : 3
+      case BiomeType.Mountains: return resource ? 3  : 3
+      case BiomeType.Ocean:     return resource ? 11 : 5
+      case BiomeType.Plains:    return resource ? 11 : 7
+      case BiomeType.Rivers:    return resource ? 7  : 7
+      case BiomeType.Swamp:     return resource ? 3  : 3
+      case BiomeType.Tundra:    return resource ? 9  : 3
+    }
+  }
 }

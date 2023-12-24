@@ -14,6 +14,8 @@ export const BIG_FAT_CROSS: Point[] = [
   [ 1, -2], [ 1, -1], [ 1,  0], [ 1,  1],  [ 1,  2],
             [ 2, -1], [ 2,  0], [ 2,  1],
 ]
+export const BFC = BIG_FAT_CROSS
+export const BFC_W_CENTRE = [[0, 0], ...BFC]
 
 export default class World {
   tiles: Tile[][]

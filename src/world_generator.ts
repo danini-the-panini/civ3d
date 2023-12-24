@@ -1,6 +1,6 @@
-import { BiomeType } from "./biome"
+import Biome, { BiomeType } from "./biome"
 import Tile from "./tile"
-import World, { DIAGONALS, HEIGHT, NEIGHBOURS, Point, WIDTH } from "./world"
+import World, { BFC_W_CENTRE, DIAGONALS, HEIGHT, NEIGHBOURS, Point, WIDTH } from "./world"
 
 type Layer<T> = T[][]
 type Landmass = Layer<number>
@@ -94,7 +94,8 @@ export default class WorldGenerator {
     return new World(p => new Tile(
       get(biomes, p),
       this.hasResource(p, get(biomes, p)),
-      this.hasHut(p, get(biomes, p))
+      this.hasHut(p, get(biomes, p)),
+      this.calcLandValue(biomes, p)
     ))
   }
 
@@ -411,5 +412,41 @@ export default class WorldGenerator {
   hasHut([x, y]: Point, biome: BiomeType): boolean {
     if (y <= 1 || y >= HEIGHT-2 || biome === BiomeType.Ocean) return false
     return (((x & 3) << 2) + (y & 3)) == (((((x >> 2) * 13) + ((y >> 2) * 11)) + this.tmw + 8) & 0x1F)
+  }
+
+  calcLandValue(biomes: Biomes, [x, y]: Point): number {
+    let biome = get(biomes, [x, y])
+    if (biome !== BiomeType.Plains && biome !== BiomeType.Grassland && biome !== BiomeType.Rivers) return 0
+    let res = this.hasResource([x, y], biome)
+
+    let landValue = 0
+
+    BFC_W_CENTRE.forEach(([dx, dy], i) => {
+      let val = 0
+      let x2 = x+dx
+      let y2 = y+dy
+      let biome2 = get(biomes, [x2, y2])
+      let nres = this.hasResource([x2, y2], biome2)
+      if (nres && (biome2 === BiomeType.Grassland || biome2 === BiomeType.Rivers)) {
+        val += 2 + new Biome(biome2).score(false)
+      } else {
+        val += new Biome(biome2).score(nres)
+      }
+      if (dx === 0 && dy === 0) {
+        val *= 4
+      } else if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
+        val *= 2
+      }
+      landValue += val
+    })
+    if (!res && (biome === BiomeType.Grassland || biome === BiomeType.Rivers)) {
+      landValue -= 16
+    }
+    landValue -= 0x78
+    if (landValue < 0) return 8
+    landValue = Math.floor(landValue / 8)
+    landValue = Math.min(Math.max(1, landValue), 15)
+    landValue = Math.floor(landValue / 2)
+    return landValue + 8
   }
 }

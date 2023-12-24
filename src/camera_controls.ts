@@ -111,7 +111,7 @@ export default class CameraControls {
   }
 
   handleMouseDown(event: MouseEvent) {
-    if (event.button === 2) {
+    if (event.button === 0) {
       this.dragging = true
       this._mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1)
       this._raycaster.setFromCamera(this._mouse, this.camera)
@@ -120,7 +120,7 @@ export default class CameraControls {
   }
 
   handleMouseUp(event: MouseEvent) {
-    if (event.button === 2) {
+    if (event.button === 0) {
       this.dragging = false
     }
   }

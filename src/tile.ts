@@ -20,15 +20,26 @@ export default class Tile implements Clone<Tile> {
   biome: Biome
   resource: boolean
   hut: boolean
+  landValue: number
   improvement: Improvement
   road: Road
   fortress: boolean
   visible: boolean
 
-  constructor(biome: BiomeType, resource: boolean, hut: boolean, improvement = Improvement.No, road = Road.No, fortress = false, visible = true) {
+  constructor(
+    biome: BiomeType,
+    resource: boolean,
+    hut: boolean,
+    landValue = 0,
+    improvement = Improvement.No,
+    road = Road.No,
+    fortress = false,
+    visible = true
+  ) {
     this.biome = new Biome(biome)
     this.resource = resource
     this.hut = hut
+    this.landValue = landValue
     this.improvement = improvement
     this.road = road
     this.fortress = fortress
@@ -79,6 +90,7 @@ export default class Tile implements Clone<Tile> {
       this.biome.type,
       this.resource,
       this.hut,
+      this.landValue,
       this.improvement,
       this.road,
       this.fortress

@@ -167,6 +167,7 @@ export default class Game extends GameState {
   yearDisplay!: HTMLDivElement;
   goldDisplay!: HTMLDivElement;
   taxDisplay!: HTMLDivElement;
+  world: World;
 
   constructor(ui: HTMLElement) {
     super(ui)
@@ -184,6 +185,8 @@ export default class Game extends GameState {
     const dirLight = new DirectionalLight(0xFFFFFF, 2)
     dirLight.position.set(-1, 2, 1)
     this.scene.add(dirLight)
+  
+    this.world = new WorldGenerator(1, 1, 1, 1).generate()
   }
 
   async init() {
@@ -225,9 +228,7 @@ export default class Game extends GameState {
       fogTex: { value: fogTex }
     }
   
-    let world = new WorldGenerator(1, 1, 1, 1).generate()
-  
-    world.eachTile(tile => {
+    this.world.eachTile(tile => {
       tile.visible = Math.random() < 0.9
     })
   
@@ -238,7 +239,7 @@ export default class Game extends GameState {
       let len = Math.floor(Math.random()*20)
       let t = Math.random() < 0.2 ? Road.Railroad : Road.Road
       for (let l = 0; l < len; l++) {
-        let tile = world.get(x, y)
+        let tile = this.world.get(x, y)
         if (tile.biome.type === BiomeType.Ocean) break
         if (tile.road === Road.No) {
           tile.road = t
@@ -253,14 +254,14 @@ export default class Game extends GameState {
       }
     }
   
-    world.eachTile((tile, [x, y]) => {
+    this.world.eachTile((tile, [x, y]) => {
       let biome = tile.biome.type
       let object = new Object3D()
       let polluted = Math.random() < 0.025
-      let fog = calcf(world, [x, y])
+      let fog = calcf(this.world, [x, y])
       if (tile.biome.type === BiomeType.Ocean) {
         for (let k = 0; k < 4; k++) {
-          let on = calcon(world, [x, y], k)
+          let on = calcon(this.world, [x, y], k)
           let data = on > 7 ? rivermouths : ocean
           let mesh = new Mesh(data.geom[on][k], new ShaderMaterial({
             vertexShader: terrainVertexShader,
@@ -281,7 +282,7 @@ export default class Game extends GameState {
       } else {
         let fortified = Math.random() < 0.05
         let calc = biome === BiomeType.Rivers ? calcr : calcn
-        let mesh = new Mesh(terrains[biome].geom[calc(world, [x, y])], new ShaderMaterial({
+        let mesh = new Mesh(terrains[biome].geom[calc(this.world, [x, y])], new ShaderMaterial({
           vertexShader: terrainVertexShader,
           fragmentShader: terrainFragmentShader,
           uniforms: {
@@ -290,8 +291,8 @@ export default class Game extends GameState {
             irrigation: { value: Math.random() < 0.5 },
             fortress: { value: fortified },
             pollution: { value: polluted },
-            road: { value: calcroad(world, [x, y]) },
-            railroad: { value: calcrailroad(world, [x, y]) },
+            road: { value: calcroad(this.world, [x, y]) },
+            railroad: { value: calcrailroad(this.world, [x, y]) },
             fog: { value: fog }
           }
         }))
