@@ -7,11 +7,13 @@ import {
   DirectionalLight,
   DoubleSide,
   Mesh,
+  MeshBasicMaterial,
   MeshPhongMaterial,
   MeshStandardMaterial,
   PerspectiveCamera,
   Scene,
-  ShaderMaterial
+  ShaderMaterial,
+  SphereGeometry
 } from "three";
 import GameState from "./game_state";
 import { Thing, loadModel, loadThing } from "./gltf_helpers";
@@ -19,7 +21,7 @@ import { BiomeType } from "./biome";
 import CameraControls from "./camera_controls";
 import World, { Point, HEIGHT, WIDTH } from "./world";
 import WorldGenerator from "./world_generator";
-import { irand, position3d } from './helpers';
+import { irand, position2d, position3d } from './helpers';
 import Player from './player';
 import Unit, { UnitType } from './unit';
 import { calcf, calcn, calcon, calcr, calcrailroad, calcroad } from './calc_helpers';
@@ -123,15 +125,15 @@ export default class Game extends GameState {
   units!: Record<string, Thing>
   slab!: Thing;
 
-  constructor(ui: HTMLElement) {
-    super(ui)
+  constructor(ui: HTMLElement, canvas: HTMLCanvasElement) {
+    super(ui, canvas)
     this.scene = new Scene()
     this.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
     this.camera.position.setY(10)
     this.camera.rotateX(-45)
     this.scene.add(this.camera)
 
-    this.cameraControls = new CameraControls(this.camera)
+    this.cameraControls = new CameraControls(this.camera, canvas)
 
     const light = new AmbientLight(0xaaaaaa)
     this.scene.add(light)
@@ -141,6 +143,8 @@ export default class Game extends GameState {
     this.scene.add(dirLight)
   
     this.world = new WorldGenerator(1, 1, 1, 1).generate()
+
+    this.moveSelectedUnit = this.moveSelectedUnit.bind(this)
   }
 
   async init() {
@@ -320,6 +324,8 @@ export default class Game extends GameState {
     this.sideBar.append(currentInfo)
 
     this.app.append(this.sideBar)
+
+    window.addEventListener('click', this.moveSelectedUnit)
   }
 
   spawnFirstSettler() {
@@ -359,6 +365,16 @@ export default class Game extends GameState {
     }
 
     console.log("no suitable spawn point found :(")
+  }
+
+  moveSelectedUnit(event: MouseEvent) {
+    console.log('moving....?')
+    if (event.button === 2) {
+      let v = this.cameraControls.getMousePointOnMap(event)
+      let p = position2d(v)
+      console.log(`move to: ${p[0]}, ${p[1]}`)
+      this.players[0].units[0].moveTo(p)
+    }
   }
 
   onLeave() {

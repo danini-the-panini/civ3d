@@ -89,6 +89,16 @@ export default class CameraControls {
     this._updateCameraPositionFromGroundPoint()
   }
 
+  getMousePointOnMap(event: MouseEvent, v: Vector3 = new Vector3()) {
+    let { x, y } = this.domElement.getBoundingClientRect()
+    let cx = event.clientX - x
+    let cy = event.clientY - y
+    this._mouse.set((cx / this.domElement.clientWidth) * 2 - 1, -(cy / this.domElement.clientHeight) * 2 + 1)
+    this._raycaster.setFromCamera(this._mouse, this.camera)
+    this._raycaster.ray.intersectPlane(this.groundPlane, v)
+    return v
+  }
+
   handleKeyDown(event: KeyboardEvent) {
     this.camera.getWorldDirection(this._camDirection)
     this._camRight.copy(this._camDirection).cross(this.camera.up)
@@ -118,15 +128,14 @@ export default class CameraControls {
   }
 
   handleContextMenu(event: MouseEvent) {
+    console.log('context menu')
     event.preventDefault()
   }
 
   handleMouseDown(event: MouseEvent) {
     if (event.button === 0) {
       this.dragging = true
-      this._mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1)
-      this._raycaster.setFromCamera(this._mouse, this.camera)
-      this._raycaster.ray.intersectPlane(this.groundPlane, this._mousePoint)
+      this.getMousePointOnMap(event, this._mousePoint)
     }
   }
 
@@ -138,10 +147,7 @@ export default class CameraControls {
 
   handleMouseMove(event: MouseEvent) {
     if (this.dragging) {
-      this._mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1)
-      this._raycaster.setFromCamera(this._mouse, this.camera)
-      this._raycaster.ray.intersectPlane(this.groundPlane, this._mousePoint2)
-
+      this.getMousePointOnMap(event, this._mousePoint2)
       this._groundPoint.copy(this._mousePoint).sub(this._mousePoint2)
       this.camera.position.add(this._groundPoint)
     }

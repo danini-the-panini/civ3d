@@ -37,7 +37,6 @@ export default class Player {
       if (x2 < 0 || x2 >= WIDTH || y2 < 0 || y2 >= HEIGHT) return
       let t = this.world.get(x2, y2) 
       t.meshes.forEach(mesh => {
-        console.log(`updating fog for ${x2}, ${y2}`)
         mesh.material.uniforms.fog.value = calcf(this.world, [x2, y2], this.visible)
         mesh.material.uniformsNeedUpdate = true
       })

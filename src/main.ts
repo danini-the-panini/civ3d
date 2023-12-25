@@ -8,7 +8,11 @@ import Game from './game'
 const app = document.getElementById('app')!
 const viewport = document.getElementById('viewport')!
 
-let mainMenu = new MainMenu(app)
+const renderer = new WebGLRenderer()
+renderer.setSize(window.innerWidth, window.innerHeight)
+viewport.appendChild(renderer.domElement)
+
+let mainMenu = new MainMenu(app, renderer.domElement)
 mainMenu.init()
 
 let currentState: GameState = mainMenu
@@ -16,15 +20,11 @@ mainMenu.onEnter()
 
 mainMenu.addEventListener('new_game', () => {
   mainMenu.onLeave()
-  currentState = new Game(app)
+  currentState = new Game(app, renderer.domElement)
   currentState.onEnter()
   currentState.init()
   onWindowResize()
 })
-
-const renderer = new WebGLRenderer()
-renderer.setSize(window.innerWidth, window.innerHeight)
-viewport.appendChild(renderer.domElement)
 
 function onWindowResize(){
   currentState.onWindowResize()

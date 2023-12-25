@@ -21,8 +21,8 @@ function loadFont(name: string): Promise<Font> {
 export default class MainMenu extends GameState {
   menu!: HTMLDivElement
 
-  constructor(ui: HTMLElement) {
-    super(ui)
+  constructor(ui: HTMLElement, canvas: HTMLCanvasElement) {
+    super(ui, canvas)
     this.scene = new Scene()
     let light = new PointLight(0xFFFFFF, 1000.0)
     light.position.set(5.0, 6.0, 10.0)

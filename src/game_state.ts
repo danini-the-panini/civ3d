@@ -4,10 +4,12 @@ export default abstract class GameState extends EventTarget {
   scene!: Scene
   camera!: PerspectiveCamera
   app: HTMLElement
+  canvas: HTMLCanvasElement;
 
-  constructor(ui: HTMLElement) {
+  constructor(ui: HTMLElement, canvas: HTMLCanvasElement) {
     super()
     this.app = ui
+    this.canvas = canvas
   }
 
   abstract init(): Promise<void>

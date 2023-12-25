@@ -1,6 +1,7 @@
 import { Object3D } from "three"
 import Player from "./player"
 import World, { Point } from "./world"
+import { position3d } from "./helpers"
 
 export enum UnitType {
   Settlers,
@@ -61,5 +62,10 @@ export default class Unit {
       if (this.object) this.object.visible = true
       this.world.get(...this.position).unitVisible = true
     }
+  }
+
+  moveTo([x, y]: Point) {
+    this.position = [x, y]
+    this.object.position.set(...position3d(x, y))
   }
 }
