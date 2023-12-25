@@ -1,3 +1,4 @@
+import { BufferGeometry, Mesh, Object3D, ShaderMaterial } from "three";
 import Biome, { BiomeType, ImpEffect } from "./biome";
 import Continent from "./continent";
 import { Point } from "./world";
@@ -27,8 +28,9 @@ export default class Tile implements Clone<Tile> {
   improvement: Improvement
   road: Road
   fortress: boolean
-  visible: boolean
   continent: Continent | undefined
+  object: Object3D = new Object3D()
+  meshes: Mesh<BufferGeometry, ShaderMaterial>[] = []
 
   constructor(
     biome: BiomeType,
@@ -39,7 +41,6 @@ export default class Tile implements Clone<Tile> {
     improvement = Improvement.No,
     road = Road.No,
     fortress = false,
-    visible = true,
     continent: Continent | undefined = undefined
   ) {
     this.biome = new Biome(biome)
@@ -50,7 +51,6 @@ export default class Tile implements Clone<Tile> {
     this.improvement = improvement
     this.road = road
     this.fortress = fortress
-    this.visible = visible
     this.continent = continent
   }
 
@@ -107,7 +107,6 @@ export default class Tile implements Clone<Tile> {
       this.improvement,
       this.road,
       this.fortress,
-      this.visible,
       this.continent
     )
   }

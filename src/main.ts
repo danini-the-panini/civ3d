@@ -19,6 +19,7 @@ mainMenu.addEventListener('new_game', () => {
   currentState = new Game(app)
   currentState.onEnter()
   currentState.init()
+  onWindowResize()
 })
 
 const renderer = new WebGLRenderer()

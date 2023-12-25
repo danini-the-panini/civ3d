@@ -1,4 +1,6 @@
 import { Camera, Plane, Ray, Raycaster, Vector2, Vector3 } from "three";
+import { Point } from "./world";
+import { position3d } from "./helpers";
 
 const SPEED = 1.0
 const ZOOM_FACTOR=0.1
@@ -78,6 +80,15 @@ export default class CameraControls {
     // this.domElement.removeEventListener('mouseleave', this.handleMouseUp, false)
   }
 
+  goTo([x, y]: Point, zoom: number = this.zoomDistance) {
+    this.camera.getWorldDirection(this._camDirection)
+    this._groundPoint.set(...position3d(x, y))
+    this._groundPoint.x += 0.5
+    this._groundPoint.y += 0.5
+    this._zoomDistance = zoom
+    this._updateCameraPositionFromGroundPoint()
+  }
+
   handleKeyDown(event: KeyboardEvent) {
     this.camera.getWorldDirection(this._camDirection)
     this._camRight.copy(this._camDirection).cross(this.camera.up)
@@ -141,8 +152,12 @@ export default class CameraControls {
     this._ray.origin.copy(this.camera.position)
     this._ray.direction.copy(this._camDirection.normalize())
     this._ray.intersectPlane(this.groundPlane, this._groundPoint)
-    this._ray.origin.copy(this._groundPoint)
-    this._ray.direction.copy(this._camDirection.negate())
+    this._updateCameraPositionFromGroundPoint()
+  }
+
+  _updateCameraPositionFromGroundPoint(groundPoint = this._groundPoint, camDirection = this._camDirection) {
+    this._ray.origin.copy(groundPoint)
+    this._ray.direction.copy(camDirection.negate())
     let newDistance = MIN_DIST + (MAX_DIST-MIN_DIST)*(easeInOut(this._zoomDistance))
     this._ray.at(newDistance, this.camera.position)
   }

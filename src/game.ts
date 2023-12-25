@@ -7,7 +7,6 @@ import {
   DoubleSide,
   Mesh,
   MeshStandardMaterial,
-  Object3D,
   PerspectiveCamera,
   Scene,
   ShaderMaterial
@@ -16,79 +15,25 @@ import GameState from "./game_state";
 import { Thing, loadModel } from "./gltf_helpers";
 import { BiomeType } from "./biome";
 import CameraControls from "./camera_controls";
-import { Road } from "./tile";
 import World, { Point, HEIGHT, WIDTH } from "./world";
 import WorldGenerator from "./world_generator";
-import { irand } from './helpers';
+import { irand, position3d } from './helpers';
 import Player from './player';
 import Unit, { UnitType } from './unit';
+import { calcf, calcn, calcon, calcr, calcrailroad, calcroad } from './calc_helpers';
 
 type Terrain = { mat: MeshStandardMaterial, geom: BufferGeometry[] }
 type Ocean = { mat: MeshStandardMaterial, geom: Record<number, BufferGeometry[]> }
 
-const DIRS: Point[] = [[0,1],[-1,0],[0,-1],[1,0]]
 const DIRS8: Point[] = [
   [ 1, -1], [ 0, -1], [-1, -1],
   [ 1,  0],           [-1,  0],
   [ 1,  1], [ 0,  0], [-1,  1]
 ]
-const DIRS9: Point[] = [
-  [ 1, -1], [0, -1], [-1, -1],
-  [ 1,  0], [0,  0], [-1,  0],
-  [ 1,  1], [0,  1], [-1,  1]
-]
-
-const ODIRS: Point[][] = [
-  [[ 1,  0], [ 1,  1], [ 0,  1]],
-  [[ 0,  1], [-1,  1], [-1,  0]],
-  [[ 0, -1], [ 1, -1], [ 1,  0]],
-  [[-1,  0], [-1, -1], [ 0, -1]]
-]
-
-const RDIRS: Point[][] = [
-  [[ 1,  0], [ 0,  1]],
-  [[ 0,  1], [-1,  0]],
-  [[ 0, -1], [ 1,  0]],
-  [[-1,  0], [ 0, -1]]
-]
 
 function getnum(str: string): number {
   return parseInt(str.match(/\d+/)![0], 10)
 }
-
-function calcn(world: World, [x, y]: Point, dirs=DIRS, cmp=([x2,y2]:Point)=>world.get(x, y).biome.type === world.get(x2, y2).biome.type) {
-  let c = 0
-  dirs.forEach(([dx,dy], n) => {
-    let x2 = x+dx
-    let y2 = y+dy
-    if (y2 >= 0 && y2 < HEIGHT && x2 >= 0 && x2 < WIDTH && cmp([x2, y2])) {
-      c += 2**n
-    }
-  })
-  return c
-}
-
-function calcr(world: World, p: Point): number {
-  return calcn(world, p, DIRS, ([x2,y2])=>world.get(x2,y2).biome.type===BiomeType.Rivers||world.get(x2,y2).biome.type===BiomeType.Ocean)
-}
-
-function calcon(world: World, p: Point, oi: number): number {
-  return calcn(world, p, ODIRS[oi], ([x2,y2])=>world.get(x2, y2).biome.type!==BiomeType.Ocean)+(calcn(world, p, RDIRS[oi], ([x2,y2])=>world.get(x2,y2).biome.type===BiomeType.Rivers)<<3)
-}
-
-function calcroad(world: World, p: Point, N=Road.Road): number {
-  if (world.get(...p).road < N) return 0
-  return calcn(world, p, DIRS9, ([x2,y2])=>world.get(x2,y2).road>=N)
-}
-
-function calcrailroad(world: World, p: Point): number {
-  return calcroad(world, p, Road.Railroad)
-}
-
-function calcf(world: World, p: Point): number {
-  return calcn(world, p, DIRS, ([x2,y2])=>world.get(x2,y2).visible)
-}
-
 
 async function loadTerrainLike(path: string): Promise<Terrain> {
   let gltf = await loadModel(path)
@@ -158,10 +103,6 @@ async function loadAllResources(...names: string[]): Promise<Record<string, Thin
 
 async function loadAllUnits(...names: string[]): Promise<Record<string, Thing>> {
   return loadAllThings(names, loadUnit)
-}
-
-function position3d(x: number, y: number): [number, number, number] {
-  return [(WIDTH/2)-x-0.5, 0, -y]
 }
 
 export default class Game extends GameState {
@@ -240,37 +181,8 @@ export default class Game extends GameState {
       fogTex: { value: fogTex }
     }
   
-    this.world.eachTile(tile => {
-      tile.visible = Math.random() < 0.9
-    })
-  
-    for (let k = 0; k < 10; k++) {
-      let x = Math.floor(Math.random()*WIDTH)
-      let y = Math.floor(Math.random()*HEIGHT)
-      let dir = Math.floor(Math.random()*8)
-      let len = Math.floor(Math.random()*20)
-      let t = Math.random() < 0.2 ? Road.Railroad : Road.Road
-      for (let l = 0; l < len; l++) {
-        let tile = this.world.get(x, y)
-        if (tile.biome.type === BiomeType.Ocean) break
-        if (tile.road === Road.No) {
-          tile.road = t
-        }
-        let d = DIRS8[dir]
-        y+=d[0]
-        x+=d[1]
-        if (y<0||x<0||y>=HEIGHT||x>=WIDTH) break
-        dir += Math.floor(Math.random()*3)-1
-        if (dir >= 8) dir %= 8
-        if (dir < 0) dir += 8
-      }
-    }
-  
     this.world.eachTile((tile, [x, y]) => {
       let biome = tile.biome.type
-      let object = new Object3D()
-      let polluted = Math.random() < 0.025
-      let fog = calcf(this.world, [x, y])
       if (tile.biome.type === BiomeType.Ocean) {
         for (let k = 0; k < 4; k++) {
           let on = calcon(this.world, [x, y], k)
@@ -283,16 +195,16 @@ export default class Game extends GameState {
               terrainTex: { value: data.mat.map },
               irrigation: { value: false },
               fortress: { value: false },
-              pollution: { value: polluted },
+              pollution: { value: false },
               road: { value: 0 },
               railroad: { value: 0 },
-              fog: { value: fog }
+              fog: { value: 0 }
             }
           }))
-          object.add(mesh)
+          tile.object.add(mesh)
+          tile.meshes.push(mesh)
         }
       } else {
-        let fortified = Math.random() < 0.05
         let calc = biome === BiomeType.Rivers ? calcr : calcn
         let mesh = new Mesh(terrains[biome].geom[calc(this.world, [x, y])], new ShaderMaterial({
           vertexShader: terrainVertexShader,
@@ -300,41 +212,42 @@ export default class Game extends GameState {
           uniforms: {
             ...baseUniforms,
             terrainTex: { value: terrains[biome].mat.map },
-            irrigation: { value: Math.random() < 0.5 },
-            fortress: { value: fortified },
-            pollution: { value: polluted },
+            irrigation: { value: false },
+            fortress: { value: false },
+            pollution: { value: false },
             road: { value: calcroad(this.world, [x, y]) },
             railroad: { value: calcrailroad(this.world, [x, y]) },
-            fog: { value: fog }
+            fog: { value: 0 }
           }
         }))
-        object.add(mesh)
-        if (biome === BiomeType.Hills || biome === BiomeType.Mountains) {
-          if (Math.random() < 0.3) {
-            let mineMesh = new Mesh(mine.geom, mine.mat)
-            object.add(mineMesh)
-          }
-        }
-        if (fortified) {
-          let fortMesh = new Mesh(fortress.geom, fortress.mat)
-          object.add(fortMesh)
-        }
+        tile.object.add(mesh)
+        tile.meshes.push(mesh)
+        // if (biome === BiomeType.Hills || biome === BiomeType.Mountains) {
+        //   if (Math.random() < 0.3) {
+        //     let mineMesh = new Mesh(mine.geom, mine.mat)
+        //     tile.object.add(mineMesh)
+        //   }
+        // }
+        // if (fortified) {
+        //   let fortMesh = new Mesh(fortress.geom, fortress.mat)
+        //   tile.object.add(fortMesh)
+        // }
       }
-      if (polluted) {
-        let pollMesh = new Mesh(pollution.geom, pollution.mat)
-        object.add(pollMesh)
-      }
+      // if (polluted) {
+      //   let pollMesh = new Mesh(pollution.geom, pollution.mat)
+      //   tile.object.add(pollMesh)
+      // }
       if (tile.resource && biome !== BiomeType.Rivers) {
         let resMesh = new Mesh(resources[biome].geom, resources[biome].mat)
-        object.add(resMesh)
+        tile.object.add(resMesh)
       }
       if (tile.hut && biome !== BiomeType.Ocean) {
         let hutMesh = new Mesh(hut.geom, hut.mat)
-        object.add(hutMesh)
+        tile.object.add(hutMesh)
       }
-      object.position.set(...position3d(x, y))
-      object.visible = tile.visible
-      this.scene.add(object)
+      tile.object.position.set(...position3d(x, y))
+      tile.object.visible = false
+      this.scene.add(tile.object)
     })
 
     this.spawnFirstSettler()
@@ -402,7 +315,7 @@ export default class Game extends GameState {
   }
 
   spawnFirstSettler() {
-    this.players.push(new Player())
+    this.players.push(new Player(this.world))
 
     for (let i = 0; i < 2000; i++) {
       let x = irand(WIDTH)
@@ -410,7 +323,7 @@ export default class Game extends GameState {
       let tile = this.world.get(x, y)
       if (tile.biome.type === BiomeType.Ocean) continue
       if (tile.landValue < (12 - Math.floor(i/32))) continue
-      //  if the distance to the closest enemy city (or settler for turn 0) is smaller than (10 - loopCounter/64), loop back to 1.
+      // TODO: if the distance to the closest enemy city (or settler for turn 0) is smaller than (10 - loopCounter/64), loop back to 1.
       let bcount = 0
       this.world.eachInContinent([x, y], t => {
         if (t.biome.type === BiomeType.Plains || t.biome.type === BiomeType.Grassland || t.biome.type === BiomeType.Rivers) {
@@ -418,7 +331,7 @@ export default class Game extends GameState {
         }
       })
       if (bcount < (32 - Math.floor(this.turn / 16))) continue
-      // if the square's continent already contains cities, and current year is after 0, loop back to 1.
+      // TODO: if the square's continent already contains cities, and current year is after 0, loop back to 1.
       if (tile.hut) continue
 
       let settler = new Unit(UnitType.Settlers, [x, y])
@@ -426,6 +339,9 @@ export default class Game extends GameState {
       object.position.set(...position3d(x, y))
       this.scene.add(object)
       this.players[0].units.push(settler)
+      this.players[0].revealMap([x, y])
+
+      this.cameraControls.goTo([x, y], 0.2)
 
       return
     }
