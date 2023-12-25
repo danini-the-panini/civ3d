@@ -10,6 +10,7 @@ uniform sampler2D fogTex;
 uniform bool irrigation;
 uniform bool pollution;
 uniform bool fortress;
+uniform bool unitVisible;
 
 varying vec2 vUv;
 varying vec2 vUv2;
@@ -54,7 +55,15 @@ vec4 roadTexture2D(sampler2D tex, vec2 uv, int k) {
   return texture2D(tex, roadUv(uv, k));
 }
 
+bool isUvInSlab(vec2 uv) {
+  return uv.x > 0.2 && uv.y > 0.2 && uv.x < 0.8 && uv.y < 0.8;
+}
+
 void main() {
+  if (unitVisible && isUvInSlab(vUv2)) {
+    discard;
+  }
+
   vec4 col = texture2D(baseTex, vUv2);
   if (irrigation) {
     col = combine(col, texture2D(irrigationTex, vUv2));

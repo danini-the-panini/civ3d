@@ -1,4 +1,6 @@
-import { Point } from "./world"
+import { Object3D } from "three"
+import Player from "./player"
+import World, { Point } from "./world"
 
 export enum UnitType {
   Settlers,
@@ -32,12 +34,32 @@ export enum UnitType {
 }
 
 export default class Unit {
+  world: World
   type: UnitType
-  //player: Player
+  player: Player | undefined
   position: Point
+  object: Object3D = new Object3D()
+  private _flashInterval: number | undefined
 
-  constructor(type: UnitType, position: Point) {
+  constructor(type: UnitType, position: Point, world: World) {
     this.type = type
     this.position = position
+    this.world = world
+  }
+
+  set selected(value: boolean) {
+    if (value) {
+      this.player?.units.filter(unit => unit !== this).forEach(unit => unit.selected = false)
+      this._flashInterval = setInterval(() => {
+        if (this.object) {
+          this.object.visible = !this.object.visible
+          this.world.get(...this.position).unitVisible = this.object.visible
+        }
+      }, 125)
+    } else {
+      clearInterval(this._flashInterval)
+      if (this.object) this.object.visible = true
+      this.world.get(...this.position).unitVisible = true
+    }
   }
 }

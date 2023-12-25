@@ -3,6 +3,8 @@ import Biome, { BiomeType, ImpEffect } from "./biome";
 import Continent from "./continent";
 import { Point } from "./world";
 
+type TerrainMesh = Mesh<BufferGeometry, ShaderMaterial>
+
 export enum Road {
   No,
   Road,
@@ -30,7 +32,7 @@ export default class Tile implements Clone<Tile> {
   fortress: boolean
   continent: Continent | undefined
   object: Object3D = new Object3D()
-  meshes: Mesh<BufferGeometry, ShaderMaterial>[] = []
+  meshes: TerrainMesh[] = []
 
   constructor(
     biome: BiomeType,
@@ -95,6 +97,15 @@ export default class Tile implements Clone<Tile> {
 
   get isOcean() {
     return this.biome.type === BiomeType.Ocean
+  }
+
+  set unitVisible(value: boolean) {
+    this.object.children
+      .filter(o => !this.meshes.includes(o as TerrainMesh))
+      .forEach(o => o.visible = !value)
+    this.meshes.forEach(m => {
+      m.material.uniforms.unitVisible.value = value
+    })
   }
 
   clone(): Tile {

@@ -2,17 +2,19 @@ import terrainVertexShader from './terrain.vert?raw'
 import terrainFragmentShader from './terrain.frag?raw'
 import {
   AmbientLight,
+  BoxGeometry,
   BufferGeometry,
   DirectionalLight,
   DoubleSide,
   Mesh,
+  MeshPhongMaterial,
   MeshStandardMaterial,
   PerspectiveCamera,
   Scene,
   ShaderMaterial
 } from "three";
 import GameState from "./game_state";
-import { Thing, loadModel } from "./gltf_helpers";
+import { Thing, loadModel, loadThing } from "./gltf_helpers";
 import { BiomeType } from "./biome";
 import CameraControls from "./camera_controls";
 import World, { Point, HEIGHT, WIDTH } from "./world";
@@ -119,6 +121,7 @@ export default class Game extends GameState {
   turn: number = 0
   players: Player[] = []
   units!: Record<string, Thing>
+  slab!: Thing;
 
   constructor(ui: HTMLElement) {
     super(ui)
@@ -141,7 +144,7 @@ export default class Game extends GameState {
   }
 
   async init() {
-    let [terrains, resources, ocean, rivermouths, irrigation, mine, fortress, pollution, hut, road, railroad, units] = await Promise.all([
+    let [terrains, resources, ocean, rivermouths, irrigation, mine, fortress, pollution, hut, road, railroad, units, slab] = await Promise.all([
       loadAllTerrains('base', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river', 'fog'),
       loadAllResources('mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'ocean'),
       loadOcean('ocean'),
@@ -155,7 +158,8 @@ export default class Game extends GameState {
       loadTerrainLike('improvements/railroad.glb'),
       loadAllUnits('armor', 'artillery', 'battleship', 'bomber', 'cannon', 'caravan', 'carrier', 'catapult', 'cavalry', 'chariot', 'cruiser',
         'diplomat', 'fighter', 'frigate', 'ironclad', 'knights', 'legion', 'mech_inf', 'militia', 'musketeers', 'nuclear', 'phalanx', 'riflemen',
-        'sail', 'settlers', 'submarine', 'transport', 'trireme')
+        'sail', 'settlers', 'submarine', 'transport', 'trireme'),
+      loadThing('units/slab.glb')
     ])
     let baseTex = terrains.base.mat.map;
     let irrigationTex = irrigation.mat.map;
@@ -168,6 +172,8 @@ export default class Game extends GameState {
     pollution.mat.alphaTest = 0.0
     pollution.mat.transparent = true
     pollution.mat.side = DoubleSide
+
+    this.slab = slab
 
     this.units = units
   
@@ -198,7 +204,8 @@ export default class Game extends GameState {
               pollution: { value: false },
               road: { value: 0 },
               railroad: { value: 0 },
-              fog: { value: 0 }
+              fog: { value: 0 },
+              unitVisible: { value: false }
             }
           }))
           tile.object.add(mesh)
@@ -215,9 +222,10 @@ export default class Game extends GameState {
             irrigation: { value: false },
             fortress: { value: false },
             pollution: { value: false },
-            road: { value: calcroad(this.world, [x, y]) },
-            railroad: { value: calcrailroad(this.world, [x, y]) },
-            fog: { value: 0 }
+            road: { value: 0 },
+            railroad: { value: 0 },
+            fog: { value: 0 },
+            unitVisible: { value: false }
           }
         }))
         tile.object.add(mesh)
@@ -334,10 +342,14 @@ export default class Game extends GameState {
       // TODO: if the square's continent already contains cities, and current year is after 0, loop back to 1.
       if (tile.hut) continue
 
-      let settler = new Unit(UnitType.Settlers, [x, y])
-      let object = new Mesh(this.units.settlers.geom, this.units.settlers.mat)
-      object.position.set(...position3d(x, y))
-      this.scene.add(object)
+      let settler = new Unit(UnitType.Settlers, [x, y], this.world)
+      settler.player = this.players[0]
+      settler.selected = true
+      settler.object.position.set(...position3d(x, y))
+      settler.object.add(new Mesh(this.units.settlers.geom, this.units.settlers.mat))
+      let slab = new Mesh(this.slab.geom, new MeshPhongMaterial({ color: 'magenta' }))
+      settler.object.add(slab)
+      this.scene.add(settler.object)
       this.players[0].units.push(settler)
       this.players[0].revealMap([x, y])
 
