@@ -86,20 +86,20 @@ export default class Biome {
     }
   }
 
-  get movementCost(): [number, number] {
+  get movementCost(): number {
     switch (this.type) {
-      case BiomeType.Arctic:    return [0.0, 1.0]
-      case BiomeType.Desert:    return [0.0, 1.0]
-      case BiomeType.Forest:    return [0.5, 2.0]
-      case BiomeType.Grassland: return [0.0, 1.0]
-      case BiomeType.Hills:     return [1.0, 2.0]
-      case BiomeType.Jungle:    return [0.5, 2.0]
-      case BiomeType.Mountains: return [2.0, 5.0]
-      case BiomeType.Ocean:     return [0.0, 1.0]
-      case BiomeType.Plains:    return [0.0, 1.0]
-      case BiomeType.Rivers:    return [0.5, 2.0]
-      case BiomeType.Swamp:     return [0.5, 2.0]
-      case BiomeType.Tundra:    return [0.0, 1.0]
+      case BiomeType.Arctic:    return 2
+      case BiomeType.Desert:    return 1
+      case BiomeType.Forest:    return 2
+      case BiomeType.Grassland: return 1
+      case BiomeType.Hills:     return 2
+      case BiomeType.Jungle:    return 2
+      case BiomeType.Mountains: return 3
+      case BiomeType.Ocean:     return 1
+      case BiomeType.Plains:    return 1
+      case BiomeType.Rivers:    return 1
+      case BiomeType.Swamp:     return 2
+      case BiomeType.Tundra:    return 1
     }
   }
 

@@ -21,7 +21,7 @@ import { BiomeType } from "./biome";
 import CameraControls from "./camera_controls";
 import World, { Point, HEIGHT, WIDTH } from "./world";
 import WorldGenerator from "./world_generator";
-import { irand, position2d, position3d } from './helpers';
+import { capitalize, irand, position2d, position3d } from './helpers';
 import Player from './player';
 import Unit, { UnitType } from './unit';
 import { calcf, calcn, calcon, calcr, calcrailroad, calcroad } from './calc_helpers';
@@ -110,20 +110,21 @@ async function loadAllUnits(...names: string[]): Promise<Record<string, Thing>> 
 }
 
 export default class Game extends GameState {
-  cameraControls: CameraControls;
-  navBar!: HTMLDivElement;
-  sideBar!: HTMLDivElement;
-  miniMap!: HTMLCanvasElement;
-  palacePreview!: HTMLCanvasElement;
-  popDisplay!: HTMLDivElement;
-  yearDisplay!: HTMLDivElement;
-  goldDisplay!: HTMLDivElement;
-  taxDisplay!: HTMLDivElement;
+  cameraControls: CameraControls
+  navBar!: HTMLDivElement
+  sideBar!: HTMLDivElement
+  miniMap!: HTMLCanvasElement
+  palacePreview!: HTMLCanvasElement
+  popDisplay!: HTMLDivElement
+  yearDisplay!: HTMLDivElement
+  goldDisplay!: HTMLDivElement
+  taxDisplay!: HTMLDivElement
+  currentInfo!: HTMLDivElement
   world: World;
   turn: number = 0
   players: Player[] = []
   units!: Record<string, Thing>
-  slab!: Thing;
+  slab!: Thing
 
   constructor(ui: HTMLElement, canvas: HTMLCanvasElement) {
     super(ui, canvas)
@@ -318,10 +319,10 @@ export default class Game extends GameState {
     infoSection.append(moneySection)
     this.sideBar.append(infoSection)
 
-    let currentInfo = document.createElement('div')
-    currentInfo.classList.add('current_info')
-    currentInfo.textContent = 'Roman'
-    this.sideBar.append(currentInfo)
+    this.currentInfo = document.createElement('div')
+    this.currentInfo.classList.add('current_info')
+    this.currentInfo.textContent = 'Roman'
+    this.sideBar.append(this.currentInfo)
 
     this.app.append(this.sideBar)
 
@@ -359,6 +360,8 @@ export default class Game extends GameState {
       this.players[0].units.push(settler)
       this.players[0].revealMap([x, y])
 
+      this.updateCurrentInfo()
+
       this.cameraControls.goTo([x, y], 0.2)
 
       return
@@ -371,8 +374,22 @@ export default class Game extends GameState {
     if (event.button === 2) {
       let v = this.cameraControls.getMousePointOnMap(event)
       let p = position2d(v)
-      this.players[0].units[0].moveTo(p)
+      this.players[0].units[0].moveTo(p, m => {
+        this.updateCurrentInfo()
+      })
     }
+  }
+
+  updateCurrentInfo() {
+    let unit = this.players[0].units[0]
+    let tile = this.world.get(...unit.position)
+    this.currentInfo.innerHTML = `
+    Romans<br>
+    ${capitalize(unit.type)}<br>
+    Moves: ${unit.movement}<br>
+    NONE<br>
+    (${capitalize(tile.biome.type)})
+    `
   }
 
   onLeave() {
@@ -382,4 +399,3 @@ export default class Game extends GameState {
     this.sideBar.remove()
   }
 }
-
