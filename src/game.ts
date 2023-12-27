@@ -325,7 +325,7 @@ export default class Game extends GameState {
 
     this.app.append(this.sideBar)
 
-    window.addEventListener('click', this.moveSelectedUnit)
+    window.addEventListener('mouseup', this.moveSelectedUnit)
   }
 
   spawnFirstSettler() {
@@ -368,11 +368,9 @@ export default class Game extends GameState {
   }
 
   moveSelectedUnit(event: MouseEvent) {
-    console.log('moving....?')
     if (event.button === 2) {
       let v = this.cameraControls.getMousePointOnMap(event)
       let p = position2d(v)
-      console.log(`move to: ${p[0]}, ${p[1]}`)
       this.players[0].units[0].moveTo(p)
     }
   }

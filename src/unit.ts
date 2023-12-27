@@ -65,7 +65,10 @@ export default class Unit {
   }
 
   moveTo([x, y]: Point) {
+    this.world.get(...this.position).unitVisible = false
     this.position = [x, y]
     this.object.position.set(...position3d(x, y))
+    this.world.get(...this.position).unitVisible = true
+    this.player?.revealMap(this.position)
   }
 }

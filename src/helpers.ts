@@ -10,5 +10,5 @@ export function position3d(x: number, y: number): [number, number, number] {
 }
 
 export function position2d(v: Vector3): Point {
-  return [Math.ceil((WIDTH/2) - v.x - 0.5), Math.ceil(-v.z)]
+  return [Math.ceil((WIDTH/2) - v.x - 0.5), Math.ceil(-v.z-1)]
 }
