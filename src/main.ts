@@ -4,6 +4,7 @@ import { WebGLRenderer } from 'three'
 import GameState from './game_state'
 import MainMenu from './main_menu'
 import Game from './game'
+import * as TweenHelper from './tween'
 
 const app = document.getElementById('app')!
 const viewport = document.getElementById('viewport')!
@@ -32,8 +33,9 @@ function onWindowResize(){
 }
 window.addEventListener('resize', onWindowResize, false)
 
-function animate() {
+function animate(time: number) {
 	requestAnimationFrame(animate)
+  TweenHelper.update(time)
 	currentState.render(renderer)
 }
-animate()
+requestAnimationFrame(animate)

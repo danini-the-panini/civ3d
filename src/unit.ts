@@ -1,7 +1,9 @@
-import { Object3D } from "three"
+import { Object3D } from 'three'
 import Player from "./player"
 import World, { Point } from "./world"
 import { position3d } from "./helpers"
+import { Easing, Tween } from 'three/examples/jsm/libs/tween.module.js'
+import * as TweenHelper from './tween'
 
 export enum UnitType {
   Settlers,
@@ -65,10 +67,26 @@ export default class Unit {
   }
 
   moveTo([x, y]: Point) {
+    this.selected = false
     this.world.get(...this.position).unitVisible = false
     this.position = [x, y]
-    this.object.position.set(...position3d(x, y))
-    this.world.get(...this.position).unitVisible = true
-    this.player?.revealMap(this.position)
+
+    let v = position3d(...this.position)
+    let coords = { x: this.object.position.x, y: this.object.position.z }
+    TweenHelper.addTween(
+      new Tween(coords, false)
+        .to({ x: v[0], y: v[2] }, 250)
+        .easing(Easing.Linear.None)
+        .onUpdate(() => {
+          this.object.position.x = coords.x
+          this.object.position.z = coords.y
+        })
+        .onComplete(() => {
+          console.log('complete...')
+          this.selected = true
+          this.player?.revealMap(this.position)
+        })
+        .start()
+    )
   }
 }

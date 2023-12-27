@@ -128,7 +128,6 @@ export default class CameraControls {
   }
 
   handleContextMenu(event: MouseEvent) {
-    console.log('context menu')
     event.preventDefault()
   }
 
