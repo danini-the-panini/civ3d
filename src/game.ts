@@ -122,6 +122,7 @@ export default class Game extends GameState {
   players: Player[] = []
   units!: Record<string, Thing>
   slab!: Thing
+  private _currentPlayerIndex: number = 0
 
   constructor(ui: HTMLElement, canvas: HTMLCanvasElement) {
     super(ui, canvas)
@@ -144,6 +145,10 @@ export default class Game extends GameState {
 
     this.moveSelectedUnit = this.moveSelectedUnit.bind(this)
     this.handleKeyPress = this.handleKeyPress.bind(this)
+  }
+
+  get currentPlayer(): Player {
+    return this.players[this._currentPlayerIndex]
   }
 
   async init() {
@@ -483,15 +488,22 @@ export default class Game extends GameState {
     }
   }
 
+  nextPlayer() {
+    this._currentPlayerIndex++
+    if (this._currentPlayerIndex >= this.players.length) {
+      this._currentPlayerIndex = 0
+    }
+  }
+
   moveSelectedUnit(event: MouseEvent) {
     if (event.button === 2) {
       let v = this.cameraControls.getMousePointOnMap(event)
       let p = position2d(v)
-      let selectedUnit = this.players[0].selectedUnit
+      let selectedUnit = this.currentPlayer.selectedUnit
       selectedUnit?.moveTo(p, m => {
         if (m === 0) {
-          this.players[0].selectNextUnit()
-          this.focusOn(this.players[0].selectedUnit)
+          this.currentPlayer.selectNextUnit()
+          this.focusOn(this.currentPlayer.selectedUnit)
         }
         this.updateCurrentInfo()
       })
@@ -501,14 +513,15 @@ export default class Game extends GameState {
   handleKeyPress(event: KeyboardEvent) {
     switch (event.key) {
       case 'Enter':
-        this.players[0].startTurn()
-        this.focusOn(this.players[0].selectedUnit)
+        this.nextPlayer()
+        this.currentPlayer.startTurn()
+        this.focusOn(this.currentPlayer.selectedUnit)
         this.updateCurrentInfo()
     }
   }
 
   updateCurrentInfo() {
-    let unit = this.players[0].selectedUnit
+    let unit = this.currentPlayer.selectedUnit
     if (unit) {
       let tile = this.world.get(...unit.position)
       this.currentInfo.innerHTML = `
