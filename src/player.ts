@@ -1,15 +1,16 @@
 import { calcf } from "./calc_helpers";
+import Game from "./game";
 import Unit from "./unit";
 import World, { DIRECTIONS, HEIGHT, NEIGHBOURS, Point, WIDTH } from "./world";
 
 export default class Player {
-  world: World;
+  game: Game;
   units: Unit[] = []
   visible: boolean[][]
   private _selectedIndex: number | null = null
 
-  constructor(world: World) {
-    this.world = world
+  constructor(game: Game) {
+    this.game = game
     this.visible = new Array(HEIGHT)
     for (let y = 0; y < HEIGHT; y++) {
       this.visible[y] = new Array(WIDTH)
@@ -17,6 +18,10 @@ export default class Player {
         this.visible[y][x] = false
       }
     }
+  }
+
+  get world() : World {
+    return this.game.world
   }
 
   set selectedIndex(value: number | null) {

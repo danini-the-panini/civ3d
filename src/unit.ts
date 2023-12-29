@@ -5,6 +5,7 @@ import { position3d } from "./helpers"
 import { Easing, Tween } from 'three/examples/jsm/libs/tween.module.js'
 import * as TweenHelper from './tween'
 import { Thing } from './gltf_helpers'
+import Game from './game'
 
 export enum UnitType {
   Settlers='settlers',
@@ -78,27 +79,26 @@ export enum MovementType {
 }
 
 export default class Unit {
-  world: World
   type: UnitType
-  player: Player | undefined
+  player: Player
   position: Point
   object: Object3D = new Object3D()
   movement: number = 0
   movementPart: number = 3
   private _flashInterval: number | undefined
 
-  constructor(type: UnitType, position: Point, world: World) {
+  constructor(type: UnitType, position: Point, player: Player) {
     this.type = type
     this.position = position
-    this.world = world
+    this.player = player
     this.movement = this.stats[2]
   }
 
   static spawn(type: UnitType, position: Point, player: Player, units: Record<string, Thing>, slab: Thing) {
-    let unit = new Unit(type, position, player.world)
+    let unit = new Unit(type, position, player)
     unit.player = player
     unit.object.position.set(...position3d(...position))
-    unit.object.add(new Mesh(units.settlers.geom, units.settlers.mat))
+    unit.object.add(new Mesh(units[type].geom, units[type].mat))
     let slabMesh = new Mesh(slab.geom, new MeshPhongMaterial({ color: 'magenta' }))
     unit.object.add(slabMesh)
     player.units.push(unit)
@@ -111,9 +111,19 @@ export default class Unit {
     this.movementPart = 3
   }
 
+  get world(): World {
+    return this.player.world
+  }
+
+  get game(): Game {
+    return this.player.game
+  }
+
   set selected(value: boolean) {
     if (value) {
-      this.player?.units.filter(unit => unit !== this).forEach(unit => unit.selected = false)
+      this.game.eachUnitAt(this.position, unit => {
+        if (unit !== this) unit.object.visible = false
+      })
       this._flashInterval = setInterval(() => {
         if (this.object) {
           this.object.visible = !this.object.visible
@@ -125,6 +135,10 @@ export default class Unit {
       if (this.object) this.object.visible = true
       this.world.get(...this.position).unitVisible = true
     }
+  }
+
+  sameTile(unit: Unit): boolean {
+    return this.position[0] === unit.position[0] && this.position[1] === unit.position[1]
   }
 
   moveTo([x, y]: Point, cb: (m: number) => void) {
@@ -144,12 +158,13 @@ export default class Unit {
 
     this.selected = false
     this.world.get(...this.position).unitVisible = false
+    let unit = this.game.unitAt(this.position, this)
+    if (unit) unit.object.visible = true
     this.position = [x, y]
 
     let v = position3d(...this.position)
     let coords = { x: this.object.position.x, y: this.object.position.z }
-    TweenHelper.addTween(
-      new Tween(coords, false)
+    let tween = new Tween(coords, false)
         .to({ x: v[0], y: v[2] }, 250)
         .easing(Easing.Linear.None)
         .onUpdate(() => {
@@ -167,9 +182,11 @@ export default class Unit {
           else this.movement -= moveCosts
 
           cb(this.movement)
+
+          TweenHelper.removeTween(tween)
         })
         .start()
-    )
+    TweenHelper.addTween(tween)
   }
 
   get stats(): [number, number, number] {

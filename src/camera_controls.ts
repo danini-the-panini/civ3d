@@ -1,6 +1,8 @@
-import { Camera, Plane, Ray, Raycaster, Vector2, Vector3 } from "three";
-import { Point } from "./world";
-import { position3d } from "./helpers";
+import { Camera, Plane, Ray, Raycaster, Vector2, Vector3 } from 'three';
+import { Point } from './world';
+import { position3d } from './helpers';
+import * as TweenHelper from './tween'
+import { Easing, Tween } from 'three/examples/jsm/libs/tween.module.js';
 
 const SPEED = 1.0
 const ZOOM_FACTOR=0.1
@@ -84,9 +86,32 @@ export default class CameraControls {
     this.camera.getWorldDirection(this._camDirection)
     this._groundPoint.set(...position3d(x, y))
     this._groundPoint.x += 0.5
-    this._groundPoint.y += 0.5
+    this._groundPoint.z -= 0.5
     this._zoomDistance = zoom
     this._updateCameraPositionFromGroundPoint()
+  }
+
+  flyTo([x, y]: Point, zoom: number = this.zoomDistance) {
+    this.camera.getWorldDirection(this._camDirection)
+
+    this._getCurrentGroundPosition()
+    let coords = { x: this._groundPoint.x, y: this._groundPoint.z, zoom: this._zoomDistance }
+    this._groundPoint.set(...position3d(x, y))
+    let tween = new Tween(coords, false)
+      .to({ x: this._groundPoint.x + 0.5, y: this._groundPoint.z - 0.5, zoom }, 250)
+      .easing(Easing.Quadratic.InOut)
+      .onUpdate(() => {
+        this.camera.getWorldDirection(this._camDirection)
+        this._groundPoint.x = coords.x
+        this._groundPoint.z = coords.y
+        this._zoomDistance = coords.zoom
+        this._updateCameraPositionFromGroundPoint()
+      })
+      .onComplete(() => {
+        TweenHelper.removeTween(tween)
+      })
+      .start()
+    TweenHelper.addTween(tween)
   }
 
   getMousePointOnMap(event: MouseEvent, v: Vector3 = new Vector3()) {
@@ -152,11 +177,16 @@ export default class CameraControls {
     }
   }
 
-  _updateCameraPosition() {
-    this.camera.getWorldDirection(this._camDirection)
+  _getCurrentGroundPosition(groundPoint = this._groundPoint, camDirection = this._camDirection) {
+    this.camera.getWorldDirection(camDirection)
     this._ray.origin.copy(this.camera.position)
-    this._ray.direction.copy(this._camDirection.normalize())
-    this._ray.intersectPlane(this.groundPlane, this._groundPoint)
+    this._ray.direction.copy(camDirection.normalize())
+    this._ray.intersectPlane(this.groundPlane, groundPoint)
+    return groundPoint
+  }
+
+  _updateCameraPosition(groundPoint = this._groundPoint, camDirection = this._camDirection) {
+    this._getCurrentGroundPosition(groundPoint, camDirection)
     this._updateCameraPositionFromGroundPoint()
   }
 

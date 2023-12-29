@@ -416,7 +416,7 @@ export default class Game extends GameState {
   }
 
   spawnFirstSettler() {
-    this.players.push(new Player(this.world))
+    this.players.push(new Player(this))
 
     for (let i = 0; i < 2000; i++) {
       let x = irand(WIDTH)
@@ -437,16 +437,50 @@ export default class Game extends GameState {
 
       let settlers = Unit.spawn(UnitType.Settlers, [x, y], this.players[0], this.units, this.slab)
       this.scene.add(settlers.object)
+
+      let unit = Unit.spawn(UnitType.Cavalry, [x, y], this.players[0], this.units, this.slab)
+      this.scene.add(unit.object)
+
       this.players[0].selectedUnit = settlers
 
       this.updateCurrentInfo()
 
-      this.cameraControls.goTo([x, y], 0.2)
+      this.focusOn(this.players[0].selectedUnit, true)
 
       return
     }
 
-    console.warn("no suitable spawn point found :(")
+    console.warn('no suitable spawn point found :(')
+  }
+
+  eachUnit(f: (unit: Unit) => void) {
+    this.players.forEach(player => {
+      player.units.forEach(unit => f(unit))
+    })
+  }
+
+  eachUnitAt([x, y]: Point, f: (unit: Unit) => void) {
+    this.eachUnit(unit => {
+      if (unit.position[0] === x && unit.position[1] === y) f(unit)
+    })
+  }
+
+  unitAt(p: Point, except?: Unit): Unit | null {
+    let unit: Unit | null = null
+    this.eachUnitAt(p, u => {
+      if (u !== except) unit = u
+    })
+    return unit
+  }
+
+  focusOn(unit: Unit | null, immediate = false) {
+    if (unit) {
+      if (immediate) {
+        this.cameraControls.goTo(unit.position, 0.2)
+      } else {
+        this.cameraControls.flyTo(unit.position, 0.2)
+      }
+    }
   }
 
   moveSelectedUnit(event: MouseEvent) {
@@ -457,6 +491,7 @@ export default class Game extends GameState {
       selectedUnit?.moveTo(p, m => {
         if (m === 0) {
           this.players[0].selectNextUnit()
+          this.focusOn(this.players[0].selectedUnit)
         }
         this.updateCurrentInfo()
       })
@@ -467,8 +502,7 @@ export default class Game extends GameState {
     switch (event.key) {
       case 'Enter':
         this.players[0].startTurn()
-        if (this.players[0].selectedUnit)
-          this.cameraControls.goTo(this.players[0].selectedUnit.position, 0.2)
+        this.focusOn(this.players[0].selectedUnit)
         this.updateCurrentInfo()
     }
   }
