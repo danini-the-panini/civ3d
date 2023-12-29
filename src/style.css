@@ -193,3 +193,19 @@ body {
 #app.game .dropdown:not(.open) {
   display: none;
 }
+
+.blink {
+  animation: 1000ms ease-in-out blink infinite;
+}
+
+@keyframes blink {
+  0% {
+    opacity: 100%;
+  }
+  50% {
+    opacity: 0%;
+  }
+  100% {
+    opacity: 100%;
+  }
+}

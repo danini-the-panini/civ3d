@@ -1,9 +1,10 @@
-import { Object3D } from 'three'
+import { Mesh, MeshPhongMaterial, Object3D } from 'three'
 import Player from "./player"
 import World, { Point } from "./world"
 import { position3d } from "./helpers"
 import { Easing, Tween } from 'three/examples/jsm/libs/tween.module.js'
 import * as TweenHelper from './tween'
+import { Thing } from './gltf_helpers'
 
 export enum UnitType {
   Settlers='settlers',
@@ -93,6 +94,18 @@ export default class Unit {
     this.movement = this.stats[2]
   }
 
+  static spawn(type: UnitType, position: Point, player: Player, units: Record<string, Thing>, slab: Thing) {
+    let unit = new Unit(type, position, player.world)
+    unit.player = player
+    unit.object.position.set(...position3d(...position))
+    unit.object.add(new Mesh(units.settlers.geom, units.settlers.mat))
+    let slabMesh = new Mesh(slab.geom, new MeshPhongMaterial({ color: 'magenta' }))
+    unit.object.add(slabMesh)
+    player.units.push(unit)
+    player.revealMap(position)
+    return unit
+  }
+
   startTurn() {
     this.movement = this.stats[2]
     this.movementPart = 3
@@ -144,7 +157,6 @@ export default class Unit {
           this.object.position.z = coords.y
         })
         .onComplete(() => {
-          console.log('complete...')
           this.selected = true
           this.player?.revealMap(this.position)
 

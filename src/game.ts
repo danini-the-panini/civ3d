@@ -143,6 +143,7 @@ export default class Game extends GameState {
     this.world = new WorldGenerator(1, 1, 1, 1).generate()
 
     this.moveSelectedUnit = this.moveSelectedUnit.bind(this)
+    this.handleKeyPress = this.handleKeyPress.bind(this)
   }
 
   async init() {
@@ -411,6 +412,7 @@ export default class Game extends GameState {
     this.app.append(this.sideBar)
 
     window.addEventListener('mouseup', this.moveSelectedUnit)
+    window.addEventListener('keypress', this.handleKeyPress)
   }
 
   spawnFirstSettler() {
@@ -433,16 +435,9 @@ export default class Game extends GameState {
       // TODO: if the square's continent already contains cities, and current year is after 0, loop back to 1.
       if (tile.hut) continue
 
-      let settler = new Unit(UnitType.Settlers, [x, y], this.world)
-      settler.player = this.players[0]
-      settler.selected = true
-      settler.object.position.set(...position3d(x, y))
-      settler.object.add(new Mesh(this.units.settlers.geom, this.units.settlers.mat))
-      let slab = new Mesh(this.slab.geom, new MeshPhongMaterial({ color: 'magenta' }))
-      settler.object.add(slab)
-      this.scene.add(settler.object)
-      this.players[0].units.push(settler)
-      this.players[0].revealMap([x, y])
+      let settlers = Unit.spawn(UnitType.Settlers, [x, y], this.players[0], this.units, this.slab)
+      this.scene.add(settlers.object)
+      this.players[0].selectedUnit = settlers
 
       this.updateCurrentInfo()
 
@@ -451,29 +446,53 @@ export default class Game extends GameState {
       return
     }
 
-    console.log("no suitable spawn point found :(")
+    console.warn("no suitable spawn point found :(")
   }
 
   moveSelectedUnit(event: MouseEvent) {
     if (event.button === 2) {
       let v = this.cameraControls.getMousePointOnMap(event)
       let p = position2d(v)
-      this.players[0].units[0].moveTo(p, m => {
+      let selectedUnit = this.players[0].selectedUnit
+      selectedUnit?.moveTo(p, m => {
+        if (m === 0) {
+          this.players[0].selectNextUnit()
+        }
         this.updateCurrentInfo()
       })
     }
   }
 
+  handleKeyPress(event: KeyboardEvent) {
+    switch (event.key) {
+      case 'Enter':
+        this.players[0].startTurn()
+        if (this.players[0].selectedUnit)
+          this.cameraControls.goTo(this.players[0].selectedUnit.position, 0.2)
+        this.updateCurrentInfo()
+    }
+  }
+
   updateCurrentInfo() {
-    let unit = this.players[0].units[0]
-    let tile = this.world.get(...unit.position)
-    this.currentInfo.innerHTML = `
-    Romans<br>
-    ${capitalize(unit.type)}<br>
-    Moves: ${unit.movement}<br>
-    NONE<br>
-    (${capitalize(tile.biome.type)})
-    `
+    let unit = this.players[0].selectedUnit
+    if (unit) {
+      let tile = this.world.get(...unit.position)
+      this.currentInfo.innerHTML = `
+      Romans<br>
+      ${capitalize(unit.type)}<br>
+      Moves: ${unit.movement}<br>
+      NONE<br>
+      (${capitalize(tile.biome.type)})
+      `
+    } else {
+      this.currentInfo.innerHTML = `
+      <br>
+      <br>
+      <span class="blink">End of Turn</span><br>
+      Press Enter<br>
+      to continue
+      `
+    }
   }
 
   onLeave() {

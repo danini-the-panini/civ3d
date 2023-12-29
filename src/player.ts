@@ -6,6 +6,7 @@ export default class Player {
   world: World;
   units: Unit[] = []
   visible: boolean[][]
+  private _selectedIndex: number | null = null
 
   constructor(world: World) {
     this.world = world
@@ -15,6 +16,33 @@ export default class Player {
       for (let x = 0; x < WIDTH; x++) {
         this.visible[y][x] = false
       }
+    }
+  }
+
+  set selectedIndex(value: number | null) {
+    this._deselectCurrentUnit()
+    if (value !== null && value >= 0 && value < this.units.length) {
+      this._selectedIndex = value
+      this._selectCurrentUnit()
+    } else {
+      this._selectedIndex = null
+    }
+  }
+
+  set selectedUnit(unit: Unit | null) {
+    this.selectedIndex = unit ? this.units.indexOf(unit) : null
+  }
+
+  get selectedUnit(): Unit | null {
+    if (this._selectedIndex === null) return null
+    return this.units[this._selectedIndex]
+  }
+
+  selectNextUnit() {
+    if (this._selectedIndex !== null) {
+      this.selectedIndex = this._selectedIndex + 1
+    } else {
+      this.selectedIndex = 0
     }
   }
 
@@ -41,5 +69,19 @@ export default class Player {
         mesh.material.uniformsNeedUpdate = true
       })
     })
+  }
+
+  startTurn() {
+    this.units.forEach(unit => unit.startTurn())
+    this.selectedIndex = 0
+  }
+
+  _deselectCurrentUnit() {
+    if (this.selectedUnit) this.selectedUnit.selected = false
+  }
+
+  _selectCurrentUnit() {
+    if (this.selectedUnit) this.selectedUnit.selected = true
+    else this._selectedIndex = null
   }
 }
