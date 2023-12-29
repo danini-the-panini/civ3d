@@ -2,18 +2,15 @@ import terrainVertexShader from './terrain.vert?raw'
 import terrainFragmentShader from './terrain.frag?raw'
 import {
   AmbientLight,
-  BoxGeometry,
   BufferGeometry,
   DirectionalLight,
   DoubleSide,
   Mesh,
-  MeshBasicMaterial,
   MeshPhongMaterial,
   MeshStandardMaterial,
   PerspectiveCamera,
   Scene,
   ShaderMaterial,
-  SphereGeometry
 } from "three";
 import GameState from "./game_state";
 import { Thing, loadModel, loadThing } from "./gltf_helpers";
@@ -24,7 +21,7 @@ import WorldGenerator from "./world_generator";
 import { capitalize, irand, position2d, position3d } from './helpers';
 import Player from './player';
 import Unit, { UnitType } from './unit';
-import { calcf, calcn, calcon, calcr, calcrailroad, calcroad } from './calc_helpers';
+import { calcn, calcon, calcr } from './calc_helpers';
 
 type Terrain = { mat: MeshStandardMaterial, geom: BufferGeometry[] }
 type Ocean = { mat: MeshStandardMaterial, geom: Record<number, BufferGeometry[]> }
@@ -271,19 +268,106 @@ export default class Game extends GameState {
 
     this.navBar = document.createElement('div')
     this.navBar.classList.add('nav_bar')
-    let menuItems = [
-      'Game',
-      'Orders',
-      'Advisors',
-      'World',
-      'Civilopedia'
+    let menuItems: [string, (string | string[] | null)[]][] = [
+      // TODO: disabled items?
+      ['Game', [
+        'Tax Rate',
+        'Luxuries Rate',
+        'FindCity',
+        'Options',
+        'Save Game',
+        'REVOLUTION!',
+        null,
+        'Retire',
+        'QUIT to DOS'
+      ]],
+      ['Orders', [
+        // TODO: different orders for different units
+        ['No Orders', 'space'],
+        ['Fortify', 'f'],
+        ['Wait', 'w'],
+        ['Sentry', 's'],
+        'GoTo',
+        null,
+        ['Disband Unit', 'D']
+      ]],
+      ['Advisors', [
+        'City Status (F1)',
+        'Military Advisor (F2)',
+        'Intelligence Advisor (F3)',
+        'Attitude Advisor (F4)',
+        'Trade Advisor (F5)',
+        'Science Advisor (F6)'
+      ]],
+      ['World', [
+        'Wonders of the World (F7)',
+        'Top 5 Cities (F8)',
+        'Civilization Score (F9)',
+        'World Map (F10)',
+        'Demographics',
+        'SpaceShips'
+      ]],
+      ['Civilopedia', [
+        'Complete',
+        'Civilization Advances',
+        'City Improvements',
+        'Military Units',
+        'Terrain Types',
+        'Miscellaneous'
+      ]]
     ]
-    menuItems.forEach(item => {
+    menuItems.forEach(([title, options]) => {
+      let itemWrapper = document.createElement('div')
+      itemWrapper.classList.add('dropdown_wrapper')
       let itemButton = document.createElement('button')
-      itemButton.textContent = item
-      this.navBar.append(itemButton)
+      itemButton.classList.add('nav_bar_item')
+      itemButton.textContent = title
+      itemWrapper.append(itemButton)
+      let itemDropdown = document.createElement('ul')
+      itemDropdown.classList.add('dropdown')
+      options.forEach(option => {
+        let optionElement = document.createElement('li')
+        let optionButton = document.createElement('button')
+        if (!option) {
+          optionElement.append(document.createElement('br'))
+        } else if (Array.isArray(option)) {
+          let [optionTitle, optionMnemo] = option
+          let optionTitleEl = document.createElement('span')
+          optionTitleEl.textContent = optionTitle
+          optionButton.append(optionTitleEl)
+          let optionMnemoEl = document.createElement('span')
+          optionMnemoEl.classList.add('mnemonic')
+          optionMnemoEl.textContent = optionMnemo
+          optionButton.append(optionMnemoEl)
+          optionElement.append(optionButton)
+        } else {
+          optionButton.textContent = option
+          optionElement.append(optionButton)
+        }
+        itemDropdown.append(optionElement)
+      })
+      itemButton.addEventListener('click', event => {
+        let otherDropdowns = document.querySelectorAll('.dropdown')
+        for (let dropdown of otherDropdowns) {
+          if (dropdown === itemDropdown) continue
+          dropdown.classList.remove('open')
+        }
+        itemDropdown.classList.toggle('open')
+        event.stopPropagation()
+      })
+      itemWrapper.append(itemDropdown)
+      this.navBar.append(itemWrapper)
     })
     this.app.append(this.navBar)
+
+    window.addEventListener('click', event => {
+      if ((event.target as HTMLElement).closest('.dropdown')) return
+
+      let otherDropdowns = document.querySelectorAll('.dropdown')
+      for (let dropdown of otherDropdowns) {
+        dropdown.classList.remove('open')
+      }
+    })
 
     this.sideBar = document.createElement('div')
     this.sideBar.classList.add('side_bar')

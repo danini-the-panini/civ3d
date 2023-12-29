@@ -132,7 +132,7 @@ export default class CameraControls {
   }
 
   handleMouseDown(event: MouseEvent) {
-    if (event.button === 0) {
+    if (event.target === this.domElement && event.button === 0) {
       this.dragging = true
       this.getMousePointOnMap(event, this._mousePoint)
     }

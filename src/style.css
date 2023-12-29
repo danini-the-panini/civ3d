@@ -96,7 +96,7 @@ body {
   background-color: black;
 }
 
-#app.game .nav_bar button {
+#app.game .nav_bar .nav_bar_item {
   width: 100%;
   text-align: left;
   color: #8a8a8e;
@@ -106,7 +106,7 @@ body {
   padding: 0.25rem 1rem 0;
 }
 
-#app.game .nav_bar button::first-letter {
+#app.game .nav_bar .nav_bar_item::first-letter {
   color: white;
 }
 
@@ -116,7 +116,6 @@ body {
   grid-template-rows: auto auto 1fr;
   background-image: url('images/background.png');
 }
-
 
 #app.game .mini_map, #app.game .info_section, #app.game .current_info {
   border: 2px solid white;
@@ -141,4 +140,56 @@ body {
 
 #app.game .current_info {
   padding-left: 0.25rem;
+}
+
+#app.game .dropdown_wrapper {
+  position: relative;
+}
+
+#app.game .dropdown {
+  position: absolute;
+  left: 2.5rem;
+  list-style: none;
+  background-image: url('images/background.png');
+  border: 2px solid black;
+  padding: 0.25rem 4px;
+  margin: 0;
+  box-shadow: inset -2px 2px 0 0 #4d4d4d, inset 2px -2px 0 0 white;
+}
+
+#app.game .dropdown_wrapper:last-child .dropdown {
+  left: unset;
+  right: 1rem;
+} 
+
+#app.game .dropdown button {
+  line-height: 0.5;
+  padding-top: 0.375rem;
+  position: relative;
+  border: none;
+  background-color: transparent;
+  display: flex;
+  gap: 1rem;
+  text-align: left;
+  white-space: nowrap;
+  width: 100%;
+}
+
+#app.game .dropdown button:hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: cyan;
+  mix-blend-mode: color;
+}
+
+#app.game .mnemonic {
+  color: white;
+}
+
+#app.game .dropdown:not(.open) {
+  display: none;
 }
