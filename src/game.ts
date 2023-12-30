@@ -2,27 +2,14 @@ import terrainVertexShader from './shaders/terrain.vert?raw'
 import terrainFragmentShader from './shaders/terrain.frag?raw'
 import {
   AmbientLight,
-  BufferGeometry,
-  CustomBlending,
   DirectionalLight,
-  DoubleSide,
-  DstAlphaFactor,
-  DstColorFactor,
   Mesh,
-  MeshPhongMaterial,
-  MeshStandardMaterial,
-  OneMinusDstAlphaFactor,
-  OneMinusSrcAlphaFactor,
-  OneMinusSrcColorFactor,
   PerspectiveCamera,
   Scene,
   ShaderMaterial,
-  SrcAlphaFactor,
-  SrcColorFactor,
-  Vector3,
 } from "three";
 import GameState from "./game_state";
-import { Thing, loadModel, loadThing } from "./gltf_helpers";
+import { Thing } from "./gltf_helpers";
 import { BiomeType } from "./biome";
 import CameraControls from "./camera_controls";
 import World, { Point, HEIGHT, WIDTH } from "./world";
@@ -32,99 +19,15 @@ import Player from './player';
 import Unit, { UnitType } from './unit';
 import { calcn, calcon, calcr } from './calc_helpers';
 import City from './city';
-import { Font, FontLoader, TextGeometry } from 'three/examples/jsm/Addons.js';
-import { degToRad } from 'three/src/math/MathUtils.js';
-
-type Terrain = { mat: MeshStandardMaterial, geom: BufferGeometry[] }
-type Ocean = { mat: MeshStandardMaterial, geom: Record<number, BufferGeometry[]> }
+import { Font } from 'three/examples/jsm/Addons.js';
+import ResourceManager from './resource_manager'
+import CityScreen from './city_screen';
 
 const DIRS8: Point[] = [
   [ 1, -1], [ 0, -1], [-1, -1],
   [ 1,  0],           [-1,  0],
   [ 1,  1], [ 0,  0], [-1,  1]
 ]
-
-const fontLoader = new FontLoader()
-
-function getnum(str: string): number {
-  return parseInt(str.match(/\d+/)![0], 10)
-}
-
-async function loadTerrainLike(path: string): Promise<Terrain> {
-  let gltf = await loadModel(path)
-  let mat = (gltf.scene.children[0] as Mesh).material as MeshStandardMaterial
-  mat.alphaTest = 0.5
-  let geom = [...gltf.scene.children].sort((a, b) => getnum(a.name) - getnum(b.name)).map(x => (x as Mesh).geometry)
-
-  return { mat, geom }
-}
-
-async function loadTerrain(name: string): Promise<Terrain> {
-  return loadTerrainLike(`terrain/${name}.glb`)
-}
-
-async function loadImprovement(name: string): Promise<Thing> {
-  let gltf = await loadModel(`improvements/${name}.glb`)
-  let mat = (gltf.scene.children[0] as Mesh).material as MeshStandardMaterial
-  mat.alphaTest = 0.5
-  let geom = (gltf.scene.children[0] as Mesh).geometry
-
-  return { mat, geom }
-}
-
-async function loadResource(name: string): Promise<Thing> {
-  let gltf = await loadModel(`resources/${name}.glb`)
-  let mat = (gltf.scene.children[0] as Mesh).material as MeshStandardMaterial
-  let geom = (gltf.scene.children[0] as Mesh).geometry
-
-  return { mat, geom }
-}
-
-async function loadUnit(name: string): Promise<Thing> {
-  let gltf = await loadModel(`units/${name}.glb`)
-  let mat = (gltf.scene.children[0] as Mesh).material as MeshStandardMaterial
-  let geom = (gltf.scene.children[0] as Mesh).geometry
-
-  return { mat, geom }
-}
-
-async function loadOcean(name: string): Promise<Ocean> {
-  let gltf = await loadModel(`terrain/${name}.glb`)
-  let mat = (gltf.scene.children[0] as Mesh).material as MeshStandardMaterial
-
-  let geom: Record<number, BufferGeometry[]> = {}
-  gltf.scene.children.forEach(child => {
-    let [c, i] = child.name.split('_').map(x => parseInt(x, 10))
-    geom[c] ||= new Array<BufferGeometry>(4)
-    geom[c][i] = (child as Mesh).geometry
-  })
-
-  return { mat, geom }
-}
-
-async function loadAllThings<T>(names: string[], load: (name: string) => Promise<T>): Promise<Record<string, T>> {
-  let things: Record<string, T> = {}
-  await Promise.all(names.map(name => load(name).then(x => { things[name] = x })))
-  return things
-}
-
-async function loadAllTerrains(...names: string[]): Promise<Record<string, Terrain>> {
-  return loadAllThings(names, loadTerrain)
-}
-
-async function loadAllResources(...names: string[]): Promise<Record<string, Thing>> {
-  return loadAllThings(names, loadResource)
-}
-
-async function loadAllUnits(...names: string[]): Promise<Record<string, Thing>> {
-  return loadAllThings(names, loadUnit)
-}
-
-async function loadFont(name: string): Promise<Font> {
-  return new Promise((resolve, reject) => {
-    fontLoader.load(`fonts/${name}.typeface.json`, resolve, undefined, reject)
-  })
-}
 
 export default class Game extends GameState {
   cameraControls: CameraControls
@@ -145,6 +48,7 @@ export default class Game extends GameState {
   citySlab!: Thing;
   cityGrid!: Thing;
   font!: Font;
+  cityScreen: CityScreen | null = null
   private _currentPlayerIndex: number = 0
 
   constructor(ui: HTMLElement, canvas: HTMLCanvasElement) {
@@ -166,6 +70,7 @@ export default class Game extends GameState {
   
     this.world = new WorldGenerator(1, 1, 1, 1).generate()
 
+    this.selectTile = this.selectTile.bind(this)
     this.moveSelectedUnit = this.moveSelectedUnit.bind(this)
     this.handleKeyPress = this.handleKeyPress.bind(this)
   }
@@ -179,53 +84,16 @@ export default class Game extends GameState {
   }
 
   async init() {
-    let [terrains, resources, ocean, rivermouths, irrigation, mine, fortress, pollution, hut, road, railroad, units, slab, citySlab, cityGrid, font] = await Promise.all([
-      loadAllTerrains('base', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river', 'fog'),
-      loadAllResources('mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'ocean'),
-      loadOcean('ocean'),
-      loadOcean('rivermouths'),
-      loadImprovement('irrigation'),
-      loadImprovement('mine'),
-      loadImprovement('fortress'),
-      loadImprovement('pollution'),
-      loadImprovement('hut'),
-      loadTerrainLike('improvements/road.glb'),
-      loadTerrainLike('improvements/railroad.glb'),
-      loadAllUnits('armor', 'artillery', 'battleship', 'bomber', 'cannon', 'caravan', 'carrier', 'catapult', 'cavalry', 'chariot', 'cruiser',
-        'diplomat', 'fighter', 'frigate', 'ironclad', 'knights', 'legion', 'mech_inf', 'militia', 'musketeers', 'nuclear', 'phalanx', 'riflemen',
-        'sail', 'settlers', 'submarine', 'transport', 'trireme'),
-      loadThing('units/slab.glb'),
-      loadThing('improvements/city_slab.glb'),
-      loadThing('improvements/city_grid.glb'),
-      loadFont('civ')
-    ])
-    let baseTex = terrains.base.mat.map;
-    let irrigationTex = irrigation.mat.map;
-    let fortressTex = fortress.mat.map;
-    let pollutionTex = pollution.mat.map;
-    let roadTex = road.mat.map;
-    let railroadTex = railroad.mat.map;
-    let fogTex = terrains.fog.mat.map;
-    pollution.mat.opacity = 0.8
-    pollution.mat.alphaTest = 0.0
-    pollution.mat.transparent = true
-    pollution.mat.side = DoubleSide
+    await ResourceManager.await()
 
-    this.slab = slab
-    this.citySlab = citySlab
-    this.cityGrid = cityGrid
-    this.font = font
-
-    this.units = units
-  
     let baseUniforms = {
-      baseTex: { value: baseTex },
-      irrigationTex: { value: irrigationTex },
-      fortressTex: { value: fortressTex },
-      pollutionTex: { value: pollutionTex },
-      roadTex: { value: roadTex },
-      railroadTex: { value: railroadTex },
-      fogTex: { value: fogTex }
+      baseTex: { value: ResourceManager.baseTex },
+      irrigationTex: { value: ResourceManager.irrigationTex },
+      fortressTex: { value: ResourceManager.fortressTex },
+      pollutionTex: { value: ResourceManager.pollutionTex },
+      roadTex: { value: ResourceManager.roadTex },
+      railroadTex: { value: ResourceManager.railroadTex },
+      fogTex: { value: ResourceManager.fogTex }
     }
   
     this.world.eachTile((tile, [x, y]) => {
@@ -233,7 +101,7 @@ export default class Game extends GameState {
       if (tile.biome.type === BiomeType.Ocean) {
         for (let k = 0; k < 4; k++) {
           let on = calcon(this.world, [x, y], k)
-          let data = on > 7 ? rivermouths : ocean
+          let data = on > 7 ? ResourceManager.rivermouths : ResourceManager.ocean
           let mesh = new Mesh(data.geom[on][k], new ShaderMaterial({
             vertexShader: terrainVertexShader,
             fragmentShader: terrainFragmentShader,
@@ -254,12 +122,12 @@ export default class Game extends GameState {
         }
       } else {
         let calc = biome === BiomeType.Rivers ? calcr : calcn
-        let mesh = new Mesh(terrains[biome].geom[calc(this.world, [x, y])], new ShaderMaterial({
+        let mesh = new Mesh(ResourceManager.terrains[biome].geom[calc(this.world, [x, y])], new ShaderMaterial({
           vertexShader: terrainVertexShader,
           fragmentShader: terrainFragmentShader,
           uniforms: {
             ...baseUniforms,
-            terrainTex: { value: terrains[biome].mat.map },
+            terrainTex: { value: ResourceManager.terrains[biome].mat.map },
             irrigation: { value: false },
             fortress: { value: false },
             pollution: { value: false },
@@ -287,19 +155,17 @@ export default class Game extends GameState {
       //   tile.object.add(pollMesh)
       // }
       if (tile.resource && biome !== BiomeType.Rivers) {
-        let resMesh = new Mesh(resources[biome].geom, resources[biome].mat)
+        let resMesh = new Mesh(ResourceManager.resources[biome].geom, ResourceManager.resources[biome].mat)
         tile.object.add(resMesh)
       }
       if (tile.hut && biome !== BiomeType.Ocean) {
-        let hutMesh = new Mesh(hut.geom, hut.mat)
+        let hutMesh = new Mesh(ResourceManager.hut.geom, ResourceManager.hut.mat)
         tile.object.add(hutMesh)
       }
       tile.object.position.set(...position3d(x, y))
       tile.object.visible = false
       this.scene.add(tile.object)
     })
-
-    this.spawnFirstSettler()
   }
 
   onEnter() {
@@ -449,8 +315,11 @@ export default class Game extends GameState {
 
     this.app.append(this.sideBar)
 
+    this.canvas.addEventListener('click', this.selectTile)
     window.addEventListener('mouseup', this.moveSelectedUnit)
     window.addEventListener('keypress', this.handleKeyPress)
+
+    this.spawnFirstSettler()
   }
 
   spawnFirstSettler() {
@@ -473,10 +342,10 @@ export default class Game extends GameState {
       // TODO: if the square's continent already contains cities, and current year is after 0, loop back to 1.
       if (tile.hut) continue
 
-      let settlers = Unit.spawn(UnitType.Settlers, [x, y], this.players[0], this.units, this.slab)
+      let settlers = Unit.spawn(UnitType.Settlers, [x, y], this.players[0])
       this.scene.add(settlers.object)
 
-      let unit = Unit.spawn(UnitType.Cavalry, [x, y], this.players[0], this.units, this.slab)
+      let unit = Unit.spawn(UnitType.Cavalry, [x, y], this.players[0])
       this.scene.add(unit.object)
 
       this.players[0].selectedUnit = settlers
@@ -538,6 +407,20 @@ export default class Game extends GameState {
     }
   }
 
+  selectTile(event: MouseEvent) {
+    if (!this.cameraControls) return
+
+    if (event.button === 0) {
+      let v = this.cameraControls.getMousePointOnMap(event)
+      let p = position2d(v)
+
+      let city = this.cityAt(p)
+      if (city) {
+        this.cityScreen = new CityScreen(city, this)
+      }
+    }
+  }
+
   moveSelectedUnit(event: MouseEvent) {
     if (event.button === 2) {
       let v = this.cameraControls.getMousePointOnMap(event)
@@ -564,28 +447,14 @@ export default class Game extends GameState {
     if (this.selectedUnit?.type !== UnitType.Settlers) return
 
     let name = prompt('City name...')
-
     if (!name) return
 
-    let city = new City(this.currentPlayer, [...this.selectedUnit.position], name)
+    let city = City.spawn(this.currentPlayer, this.selectedUnit.position, name)
 
-
-    city.object.add(new Mesh(this.citySlab.geom, new MeshPhongMaterial({ color: 'magenta' })))
-    city.object.add(new Mesh(this.cityGrid.geom, new MeshPhongMaterial({ color: '#822014' })))
-    let text = new Mesh(new TextGeometry(city.size.toString(), { font: this.font, size: 1, height: 0.1 }), new MeshPhongMaterial({ color: 'black' }))
-    text.rotateX(degToRad(-90))
-    text.geometry.computeBoundingBox()
-    text.position.x += 0.5 - text.geometry.boundingBox!.max.x / 2
-    text.position.y += 0.1
-    text.position.z -= 0.5 - text.geometry.boundingBox!.max.y / 2
-    city.object.add(text)
-    city.object.position.set(...position3d(...city.position))
-    this.world.get(...city.position).city = city
-    this.scene.add(city.object)
-
-    this.currentPlayer.cities.push(city)
     this.selectedUnit.remove()
     this.focusOn(this.currentPlayer.selectedUnit)
+
+    this.cityScreen = new CityScreen(city, this)
   }
 
   handleKeyPress(event: KeyboardEvent) {

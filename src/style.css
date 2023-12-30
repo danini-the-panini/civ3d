@@ -1,9 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen&display=swap');
+
 @font-face {
   font-family: "civ";
   src:
     url("fonts/civ.ttf") format("truetype")
 }
-
 
 html, body {
   width: 100%;
@@ -192,6 +193,147 @@ body {
 
 #app.game .dropdown:not(.open) {
   display: none;
+}
+
+#app.game .city_screen {
+  font-family: 'Silkscreen';
+  font-size: 1rem;
+  background-color: black;
+  display: grid;
+  line-height: normal;
+
+  grid-template-rows: auto auto 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
+
+  grid-template-areas:
+    'name      name buildings'
+    'resources map  buildings'
+    'units     map  buildings'
+    'food      info build';
+
+  gap: 2px;
+
+  border: 2px solid black;
+  padding: 0;
+}
+
+::backdrop {
+  background: black;
+  opacity: 0.5;
+}
+
+
+#app.game .city_screen .panel {
+  background: url('images/background.png');
+  border: 2px solid #304db2;
+  position: relative;
+}
+
+#app.game .city_screen .panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #304db2;
+  mix-blend-mode: color;
+  pointer-events: none;
+}
+
+#app.game .city_screen .panel_header {
+  background-color: #304db2;
+  color: white;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+}
+
+#app.game .city_screen .panel_header h3 {
+  margin: 0;
+  padding: 0;
+  font-weight: normal;
+  line-height: 0.75;
+  padding-left: 0.5rem;
+  padding-bottom: 0.25rem;
+}
+
+#app.game .city_screen .name {
+  grid-area: name;
+}
+
+#app.game .city_screen .name span {
+  color: white;
+  text-align: center;
+  display: block;
+}
+
+#app.game .city_screen .buildings_list {
+  grid-area: buildings;
+}
+
+#app.game .city_screen .resources_panel {
+  grid-area: resources;
+}
+
+#app.game .city_screen .units_panel {
+  grid-area: units;
+}
+
+#app.game .city_screen .city_view {
+  grid-area: map;
+}
+
+#app.game .city_screen .food_storage {
+  grid-area: food;
+}
+
+#app.game .city_screen .info_tabs {
+  grid-area: info;
+}
+
+#app.game .city_screen .tabs {
+  display: flex;
+}
+
+#app.game .city_screen .tab_button,
+#app.game .city_screen .button,
+#app.game .city_screen .exit_button {
+  border: 2px solid #8a8a8e;
+  border-bottom-color: #304db2;
+  border-right-color: #304db2;
+  background-color: #798eff;
+  color: #304db2;
+  text-transform: uppercase;
+  padding: 0;
+  line-height: 0.75;
+  padding-bottom: 0.125rem;
+}
+
+#app.game .city_screen .tab_button {
+  width: 100%;
+}
+
+#app.game .city_screen .tab_button.selected {
+  background-color: white;
+}
+
+#app.game .city_screen .tab_body:not(.selected) {
+  display: none;
+}
+
+#app.game .city_screen .build_panel {
+  grid-area: build;
+}
+
+#app.game .city_screen .exit_button {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: #f75555;
+  border-bottom-color: #822014;
+  border-right-color: #822014;
+  color: #822014;
 }
 
 .blink {

@@ -4,8 +4,8 @@ import World, { Point } from "./world"
 import { position3d } from "./helpers"
 import { Easing, Tween } from 'three/examples/jsm/libs/tween.module.js'
 import * as TweenHelper from './tween'
-import { Thing } from './gltf_helpers'
 import Game from './game'
+import ResourceManager from './resource_manager'
 
 export enum UnitType {
   Settlers='settlers',
@@ -94,12 +94,12 @@ export default class Unit {
     this.movement = this.stats[2]
   }
 
-  static spawn(type: UnitType, position: Point, player: Player, units: Record<string, Thing>, slab: Thing) {
+  static spawn(type: UnitType, position: Point, player: Player) {
     let unit = new Unit(type, position, player)
     unit.player = player
     unit.object.position.set(...position3d(...position))
-    unit.object.add(new Mesh(units[type].geom, units[type].mat))
-    let slabMesh = new Mesh(slab.geom, new MeshPhongMaterial({ color: 'magenta' }))
+    unit.object.add(new Mesh(ResourceManager.units[type].geom, ResourceManager.units[type].mat))
+    let slabMesh = new Mesh(ResourceManager.slab.geom, new MeshPhongMaterial({ color: 'magenta' }))
     unit.object.add(slabMesh)
     player.units.push(unit)
     player.revealMap(position)

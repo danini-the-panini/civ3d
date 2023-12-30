@@ -19,11 +19,11 @@ mainMenu.init()
 let currentState: GameState = mainMenu
 mainMenu.onEnter()
 
-mainMenu.addEventListener('new_game', () => {
+mainMenu.addEventListener('new_game', async () => {
   mainMenu.onLeave()
   currentState = new Game(app, renderer.domElement)
+  await currentState.init()
   currentState.onEnter()
-  currentState.init()
   onWindowResize()
 })
 
