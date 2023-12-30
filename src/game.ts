@@ -1,16 +1,25 @@
-import terrainVertexShader from './terrain.vert?raw'
-import terrainFragmentShader from './terrain.frag?raw'
+import terrainVertexShader from './shaders/terrain.vert?raw'
+import terrainFragmentShader from './shaders/terrain.frag?raw'
 import {
   AmbientLight,
   BufferGeometry,
+  CustomBlending,
   DirectionalLight,
   DoubleSide,
+  DstAlphaFactor,
+  DstColorFactor,
   Mesh,
   MeshPhongMaterial,
   MeshStandardMaterial,
+  OneMinusDstAlphaFactor,
+  OneMinusSrcAlphaFactor,
+  OneMinusSrcColorFactor,
   PerspectiveCamera,
   Scene,
   ShaderMaterial,
+  SrcAlphaFactor,
+  SrcColorFactor,
+  Vector3,
 } from "three";
 import GameState from "./game_state";
 import { Thing, loadModel, loadThing } from "./gltf_helpers";
@@ -22,6 +31,9 @@ import { capitalize, irand, position2d, position3d } from './helpers';
 import Player from './player';
 import Unit, { UnitType } from './unit';
 import { calcn, calcon, calcr } from './calc_helpers';
+import City from './city';
+import { Font, FontLoader, TextGeometry } from 'three/examples/jsm/Addons.js';
+import { degToRad } from 'three/src/math/MathUtils.js';
 
 type Terrain = { mat: MeshStandardMaterial, geom: BufferGeometry[] }
 type Ocean = { mat: MeshStandardMaterial, geom: Record<number, BufferGeometry[]> }
@@ -31,6 +43,8 @@ const DIRS8: Point[] = [
   [ 1,  0],           [-1,  0],
   [ 1,  1], [ 0,  0], [-1,  1]
 ]
+
+const fontLoader = new FontLoader()
 
 function getnum(str: string): number {
   return parseInt(str.match(/\d+/)![0], 10)
@@ -106,6 +120,12 @@ async function loadAllUnits(...names: string[]): Promise<Record<string, Thing>> 
   return loadAllThings(names, loadUnit)
 }
 
+async function loadFont(name: string): Promise<Font> {
+  return new Promise((resolve, reject) => {
+    fontLoader.load(`fonts/${name}.typeface.json`, resolve, undefined, reject)
+  })
+}
+
 export default class Game extends GameState {
   cameraControls: CameraControls
   navBar!: HTMLDivElement
@@ -122,6 +142,9 @@ export default class Game extends GameState {
   players: Player[] = []
   units!: Record<string, Thing>
   slab!: Thing
+  citySlab!: Thing;
+  cityGrid!: Thing;
+  font!: Font;
   private _currentPlayerIndex: number = 0
 
   constructor(ui: HTMLElement, canvas: HTMLCanvasElement) {
@@ -151,8 +174,12 @@ export default class Game extends GameState {
     return this.players[this._currentPlayerIndex]
   }
 
+  get selectedUnit() : Unit | null {
+    return this.currentPlayer.selectedUnit
+  }
+
   async init() {
-    let [terrains, resources, ocean, rivermouths, irrigation, mine, fortress, pollution, hut, road, railroad, units, slab] = await Promise.all([
+    let [terrains, resources, ocean, rivermouths, irrigation, mine, fortress, pollution, hut, road, railroad, units, slab, citySlab, cityGrid, font] = await Promise.all([
       loadAllTerrains('base', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river', 'fog'),
       loadAllResources('mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'ocean'),
       loadOcean('ocean'),
@@ -167,7 +194,10 @@ export default class Game extends GameState {
       loadAllUnits('armor', 'artillery', 'battleship', 'bomber', 'cannon', 'caravan', 'carrier', 'catapult', 'cavalry', 'chariot', 'cruiser',
         'diplomat', 'fighter', 'frigate', 'ironclad', 'knights', 'legion', 'mech_inf', 'militia', 'musketeers', 'nuclear', 'phalanx', 'riflemen',
         'sail', 'settlers', 'submarine', 'transport', 'trireme'),
-      loadThing('units/slab.glb')
+      loadThing('units/slab.glb'),
+      loadThing('improvements/city_slab.glb'),
+      loadThing('improvements/city_grid.glb'),
+      loadFont('civ')
     ])
     let baseTex = terrains.base.mat.map;
     let irrigationTex = irrigation.mat.map;
@@ -182,6 +212,9 @@ export default class Game extends GameState {
     pollution.mat.side = DoubleSide
 
     this.slab = slab
+    this.citySlab = citySlab
+    this.cityGrid = cityGrid
+    this.font = font
 
     this.units = units
   
@@ -464,6 +497,12 @@ export default class Game extends GameState {
     })
   }
 
+  eachCity(f: (city: City) => void) {
+    this.players.forEach(player => {
+      player.cities.forEach(city => f(city))
+    })
+  }
+
   eachUnitAt([x, y]: Point, f: (unit: Unit) => void) {
     this.eachUnit(unit => {
       if (unit.position[0] === x && unit.position[1] === y) f(unit)
@@ -476,6 +515,10 @@ export default class Game extends GameState {
       if (u !== except) unit = u
     })
     return unit
+  }
+  
+  cityAt([x, y]: Point): City | undefined {
+    return this.world.get(x, y).city
   }
 
   focusOn(unit: Unit | null, immediate = false) {
@@ -510,13 +553,49 @@ export default class Game extends GameState {
     }
   }
 
+  endTurn() {
+    this.nextPlayer()
+    this.currentPlayer.startTurn()
+    this.focusOn(this.currentPlayer.selectedUnit)
+    this.updateCurrentInfo()
+  }
+
+  buildCity() {
+    if (this.selectedUnit?.type !== UnitType.Settlers) return
+
+    let name = prompt('City name...')
+
+    if (!name) return
+
+    let city = new City(this.currentPlayer, [...this.selectedUnit.position], name)
+
+
+    city.object.add(new Mesh(this.citySlab.geom, new MeshPhongMaterial({ color: 'magenta' })))
+    city.object.add(new Mesh(this.cityGrid.geom, new MeshPhongMaterial({ color: '#822014' })))
+    let text = new Mesh(new TextGeometry(city.size.toString(), { font: this.font, size: 1, height: 0.1 }), new MeshPhongMaterial({ color: 'black' }))
+    text.rotateX(degToRad(-90))
+    text.geometry.computeBoundingBox()
+    text.position.x += 0.5 - text.geometry.boundingBox!.max.x / 2
+    text.position.y += 0.1
+    text.position.z -= 0.5 - text.geometry.boundingBox!.max.y / 2
+    city.object.add(text)
+    city.object.position.set(...position3d(...city.position))
+    this.world.get(...city.position).city = city
+    this.scene.add(city.object)
+
+    this.currentPlayer.cities.push(city)
+    this.selectedUnit.remove()
+    this.focusOn(this.currentPlayer.selectedUnit)
+  }
+
   handleKeyPress(event: KeyboardEvent) {
     switch (event.key) {
       case 'Enter':
-        this.nextPlayer()
-        this.currentPlayer.startTurn()
-        this.focusOn(this.currentPlayer.selectedUnit)
-        this.updateCurrentInfo()
+        this.endTurn()
+        break
+      case 'b':
+        this.buildCity()
+        break
     }
   }
 

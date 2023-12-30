@@ -1,4 +1,5 @@
 import { calcf } from "./calc_helpers";
+import City from "./city";
 import Game from "./game";
 import Unit from "./unit";
 import World, { DIRECTIONS, HEIGHT, NEIGHBOURS, Point, WIDTH } from "./world";
@@ -6,6 +7,7 @@ import World, { DIRECTIONS, HEIGHT, NEIGHBOURS, Point, WIDTH } from "./world";
 export default class Player {
   game: Game;
   units: Unit[] = []
+  cities: City[] = []
   visible: boolean[][]
   private _selectedIndex: number | null = null
 
@@ -63,7 +65,7 @@ export default class Player {
     this.visible[y][x] = true
     let tile = this.world.get(x, y)
     let object = tile.object
-    if (object) { object.visible = true }
+    if (object && !tile.city) { object.visible = true }
     [[0, 0], ...DIRECTIONS].forEach(([dx, dy]) => {
       let x2 = x + dx
       let y2 = y + dy
@@ -79,6 +81,15 @@ export default class Player {
   startTurn() {
     this.units.forEach(unit => unit.startTurn())
     this.selectedIndex = 0
+  }
+
+  removeUnit(unit: Unit) {
+    let index = this.units.indexOf(unit)
+    if (index < 0) return
+    if (index === this._selectedIndex) this._deselectCurrentUnit()
+    this.units.splice(index, 1)
+    if (this._selectedIndex !== null && this._selectedIndex >= this.units.length) this._selectedIndex = 0
+    this._selectCurrentUnit()
   }
 
   _deselectCurrentUnit() {

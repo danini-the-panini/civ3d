@@ -189,6 +189,11 @@ export default class Unit {
     TweenHelper.addTween(tween)
   }
 
+  remove() {
+    this.game.scene.remove(this.object)
+    this.player.removeUnit(this)
+  }
+
   get stats(): [number, number, number] {
     switch (this.type) {
       //                                 A   D   M
