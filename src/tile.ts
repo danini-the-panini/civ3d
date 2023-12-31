@@ -1,8 +1,14 @@
-import { BufferGeometry, Mesh, Object3D, ShaderMaterial } from "three";
-import Biome, { BiomeType, ImpEffect } from "./biome";
-import Continent from "./continent";
-import { Point } from "./world";
-import City from "./city";
+import terrainVertexShader from './shaders/terrain.vert?raw'
+import terrainFragmentShader from './shaders/terrain.frag?raw'
+
+import { BufferGeometry, Mesh, Object3D, ShaderMaterial } from 'three'
+import Biome, { BiomeType, ImpEffect } from './biome'
+import Continent from './continent'
+import World, { Point } from './world'
+import City from './city'
+import { position3d } from './helpers'
+import ResourceManager from './resource_manager'
+import { calcn, calcon, calcr } from './calc_helpers'
 
 type TerrainMesh = Mesh<BufferGeometry, ShaderMaterial>
 
@@ -23,6 +29,7 @@ interface Clone<T> {
 }
 
 export default class Tile implements Clone<Tile> {
+  world: World
   biome: Biome
   position: Point
   resource: boolean
@@ -37,6 +44,7 @@ export default class Tile implements Clone<Tile> {
   private _city?: City
 
   constructor(
+    world: World,
     biome: BiomeType,
     position: Point,
     resource: boolean,
@@ -47,6 +55,7 @@ export default class Tile implements Clone<Tile> {
     fortress = false,
     continent: Continent | undefined = undefined
   ) {
+    this.world = world
     this.biome = new Biome(biome)
     this.position = position
     this.resource = resource
@@ -56,6 +65,90 @@ export default class Tile implements Clone<Tile> {
     this.road = road
     this.fortress = fortress
     this.continent = continent
+  }
+
+  createObject(attach = true): [Object3D, TerrainMesh[]] {
+    let object = attach ? this.object : new Object3D()
+    let meshes = attach ? this.meshes : []
+
+    let baseUniforms = {
+      baseTex: { value: ResourceManager.baseTex },
+      irrigationTex: { value: ResourceManager.irrigationTex },
+      fortressTex: { value: ResourceManager.fortressTex },
+      pollutionTex: { value: ResourceManager.pollutionTex },
+      roadTex: { value: ResourceManager.roadTex },
+      railroadTex: { value: ResourceManager.railroadTex },
+      fogTex: { value: ResourceManager.fogTex }
+    }
+
+    let biome = this.biome.type
+    if (this.biome.type === BiomeType.Ocean) {
+      for (let k = 0; k < 4; k++) {
+        let on = calcon(this.world, this.position, k)
+        let data = on > 7 ? ResourceManager.rivermouths : ResourceManager.ocean
+        let mesh = new Mesh(data.geom[on][k], new ShaderMaterial({
+          vertexShader: terrainVertexShader,
+          fragmentShader: terrainFragmentShader,
+          uniforms: {
+            ...baseUniforms,
+            terrainTex: { value: data.mat.map },
+            irrigation: { value: false },
+            fortress: { value: false },
+            pollution: { value: false },
+            road: { value: 0 },
+            railroad: { value: 0 },
+            fog: { value: 0 },
+            unitVisible: { value: false }
+          }
+        }))
+        object.add(mesh)
+        meshes.push(mesh)
+      }
+    } else {
+      let calc = biome === BiomeType.Rivers ? calcr : calcn
+      let mesh = new Mesh(ResourceManager.terrains[biome].geom[calc(this.world, this.position)], new ShaderMaterial({
+        vertexShader: terrainVertexShader,
+        fragmentShader: terrainFragmentShader,
+        uniforms: {
+          ...baseUniforms,
+          terrainTex: { value: ResourceManager.terrains[biome].mat.map },
+          irrigation: { value: false },
+          fortress: { value: false },
+          pollution: { value: false },
+          road: { value: 0 },
+          railroad: { value: 0 },
+          fog: { value: 0 },
+          unitVisible: { value: false }
+        }
+      }))
+      object.add(mesh)
+      meshes.push(mesh)
+      // if (biome === BiomeType.Hills || biome === BiomeType.Mountains) {
+      //   if (Math.random() < 0.3) {
+      //     let mineMesh = new Mesh(mine.geom, mine.mat)
+      //     object.add(mineMesh)
+      //   }
+      // }
+      // if (fortified) {
+      //   let fortMesh = new Mesh(fortress.geom, fortress.mat)
+      //   object.add(fortMesh)
+      // }
+    }
+    // if (polluted) {
+    //   let pollMesh = new Mesh(pollution.geom, pollution.mat)
+    //   object.add(pollMesh)
+    // }
+    if (this.resource && biome !== BiomeType.Rivers) {
+      let resMesh = new Mesh(ResourceManager.resources[biome].geom, ResourceManager.resources[biome].mat)
+      object.add(resMesh)
+    }
+    if (this.hut && biome !== BiomeType.Ocean) {
+      let hutMesh = new Mesh(ResourceManager.hut.geom, ResourceManager.hut.mat)
+      object.add(hutMesh)
+    }
+    object.position.set(...position3d(...this.position))
+
+    return [object, meshes]
   }
 
   get city() : City | undefined {
@@ -123,6 +216,7 @@ export default class Tile implements Clone<Tile> {
 
   clone(): Tile {
     return new Tile(
+      this.world,
       this.biome.type,
       this.position,
       this.resource,

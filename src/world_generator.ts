@@ -88,7 +88,8 @@ export default class WorldGenerator {
     this.generateRivers(biomes)
     this.generatePoles(biomes)
 
-    return new World(p => new Tile(
+    return new World((p, world) => new Tile(
+      world,
       get(biomes, p),
       p,
       this.hasResource(p, get(biomes, p)),

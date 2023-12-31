@@ -22,6 +22,7 @@ import City from './city';
 import { Font } from 'three/examples/jsm/Addons.js';
 import ResourceManager from './resource_manager'
 import CityScreen from './city_screen';
+import { degToRad } from 'three/src/math/MathUtils.js';
 
 const DIRS8: Point[] = [
   [ 1, -1], [ 0, -1], [-1, -1],
@@ -56,7 +57,7 @@ export default class Game extends GameState {
     this.scene = new Scene()
     this.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
     this.camera.position.setY(10)
-    this.camera.rotateX(-45)
+    this.camera.rotateX(degToRad(-60))
     this.scene.add(this.camera)
 
     this.cameraControls = new CameraControls(this.camera, canvas)
@@ -85,84 +86,9 @@ export default class Game extends GameState {
 
   async init() {
     await ResourceManager.await()
-
-    let baseUniforms = {
-      baseTex: { value: ResourceManager.baseTex },
-      irrigationTex: { value: ResourceManager.irrigationTex },
-      fortressTex: { value: ResourceManager.fortressTex },
-      pollutionTex: { value: ResourceManager.pollutionTex },
-      roadTex: { value: ResourceManager.roadTex },
-      railroadTex: { value: ResourceManager.railroadTex },
-      fogTex: { value: ResourceManager.fogTex }
-    }
   
-    this.world.eachTile((tile, [x, y]) => {
-      let biome = tile.biome.type
-      if (tile.biome.type === BiomeType.Ocean) {
-        for (let k = 0; k < 4; k++) {
-          let on = calcon(this.world, [x, y], k)
-          let data = on > 7 ? ResourceManager.rivermouths : ResourceManager.ocean
-          let mesh = new Mesh(data.geom[on][k], new ShaderMaterial({
-            vertexShader: terrainVertexShader,
-            fragmentShader: terrainFragmentShader,
-            uniforms: {
-              ...baseUniforms,
-              terrainTex: { value: data.mat.map },
-              irrigation: { value: false },
-              fortress: { value: false },
-              pollution: { value: false },
-              road: { value: 0 },
-              railroad: { value: 0 },
-              fog: { value: 0 },
-              unitVisible: { value: false }
-            }
-          }))
-          tile.object.add(mesh)
-          tile.meshes.push(mesh)
-        }
-      } else {
-        let calc = biome === BiomeType.Rivers ? calcr : calcn
-        let mesh = new Mesh(ResourceManager.terrains[biome].geom[calc(this.world, [x, y])], new ShaderMaterial({
-          vertexShader: terrainVertexShader,
-          fragmentShader: terrainFragmentShader,
-          uniforms: {
-            ...baseUniforms,
-            terrainTex: { value: ResourceManager.terrains[biome].mat.map },
-            irrigation: { value: false },
-            fortress: { value: false },
-            pollution: { value: false },
-            road: { value: 0 },
-            railroad: { value: 0 },
-            fog: { value: 0 },
-            unitVisible: { value: false }
-          }
-        }))
-        tile.object.add(mesh)
-        tile.meshes.push(mesh)
-        // if (biome === BiomeType.Hills || biome === BiomeType.Mountains) {
-        //   if (Math.random() < 0.3) {
-        //     let mineMesh = new Mesh(mine.geom, mine.mat)
-        //     tile.object.add(mineMesh)
-        //   }
-        // }
-        // if (fortified) {
-        //   let fortMesh = new Mesh(fortress.geom, fortress.mat)
-        //   tile.object.add(fortMesh)
-        // }
-      }
-      // if (polluted) {
-      //   let pollMesh = new Mesh(pollution.geom, pollution.mat)
-      //   tile.object.add(pollMesh)
-      // }
-      if (tile.resource && biome !== BiomeType.Rivers) {
-        let resMesh = new Mesh(ResourceManager.resources[biome].geom, ResourceManager.resources[biome].mat)
-        tile.object.add(resMesh)
-      }
-      if (tile.hut && biome !== BiomeType.Ocean) {
-        let hutMesh = new Mesh(ResourceManager.hut.geom, ResourceManager.hut.mat)
-        tile.object.add(hutMesh)
-      }
-      tile.object.position.set(...position3d(x, y))
+    this.world.eachTile((tile) => {
+      tile.createObject()
       tile.object.visible = false
       this.scene.add(tile.object)
     })

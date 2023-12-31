@@ -1,6 +1,11 @@
-import { WebGLRenderer } from 'three'
+import { AmbientLight, DirectionalLight, PerspectiveCamera, Scene, WebGLRenderer } from 'three'
 import City from './city'
 import Game from './game'
+import { BFC, HEIGHT } from './world'
+import { position3d } from './helpers'
+import CameraControls from './camera_controls'
+import { calcf } from './calc_helpers'
+import { degToRad } from 'three/src/math/MathUtils.js'
 
 export default class CityScreen {
   element: HTMLDialogElement
@@ -13,6 +18,8 @@ export default class CityScreen {
   buildRenderer: WebGLRenderer
   buildProgress: HTMLElement
   game: Game
+  mapScene: Scene
+  mapCamera: PerspectiveCamera
 
   constructor(city: City, game: Game) {
     this.city = city
@@ -42,12 +49,51 @@ export default class CityScreen {
     this.element.append(unitsPanel)
 
     let cityView = document.createElement('div')
-    cityView.classList.add('city_view', 'panel')
+    cityView.classList.add('city_view', 'panel', 'panel--no-color')
     this.element.append(cityView)
 
     this.mapRenderer = new WebGLRenderer()
     this.mapRenderer.setSize(160, 160)
     cityView.appendChild(this.mapRenderer.domElement)
+    this.mapScene = new Scene()
+
+    this.mapCamera = new PerspectiveCamera(75, 1.0, 0.1, 1000)
+    this.mapCamera.rotateX(degToRad(-80))
+    this.mapScene.add(this.mapCamera)
+
+    const light = new AmbientLight(0xaaaaaa)
+    this.mapScene.add(light)
+
+    const dirLight = new DirectionalLight(0xFFFFFF, 2)
+    dirLight.position.set(-1, 2, 1)
+    this.mapScene.add(dirLight)
+
+    let observer = new ResizeObserver(entries => {
+      this.mapCamera.aspect = cityView.clientWidth / cityView.clientHeight
+      this.mapRenderer.setSize(cityView.clientWidth, cityView.clientHeight)
+      this.mapRenderer.render(this.mapScene, this.mapCamera)
+    })
+    observer.observe(cityView)
+
+    let cameraControls = new CameraControls(this.mapCamera, this.mapRenderer.domElement, false)
+
+    BFC.forEach(([dx, dy]) => {
+      let x = this.city.position[0] + dx
+      let y = this.city.position[1] + dy
+
+      if (y < 0 || y >= HEIGHT) return
+      
+      let tile = this.world.get(x, y)
+      if (this.player.visible[y][x]) {
+        let [tileObject, tileMeshes] = tile.createObject(false)
+        tileMeshes.forEach(mesh => {
+          mesh.material.uniforms.fog.value = calcf(this.world, tile.position, this.player.visible)
+        })
+        this.mapScene.add(tileObject)
+      }
+    })
+
+    cameraControls.goTo(this.city.position, 0.25)
 
     this.buildingsList = document.createElement('div')
     this.buildingsList.classList.add('buildings_list', 'panel')
@@ -69,7 +115,7 @@ export default class CityScreen {
     let tabs = document.createElement('div')
     tabs.classList.add('tabs')
     tabsPanel.append(tabs)
-    let tabItems = ['info', 'happy', 'map', 'view']
+    let tabItems = ['info', 'happy', 'map']
     tabItems.forEach((item, i) => {
       let button = document.createElement('button')
       button.classList.add('tab_button')
@@ -96,6 +142,10 @@ export default class CityScreen {
         tabBody.classList.add('selected')
       })
     })
+    let button = document.createElement('button')
+    button.classList.add('button')
+    button.textContent = 'view'
+    tabs.append(button)
     this.element.append(tabsPanel)
 
     let buildPanel = document.createElement('div')
@@ -135,7 +185,16 @@ export default class CityScreen {
 
     requestAnimationFrame(() => {
       this.mapRenderer.setSize(cityView.clientWidth, cityView.clientHeight)
+      this.mapRenderer.render(this.mapScene, this.mapCamera)
     })
+  }
+
+  get world() {
+    return this.game.world
+  }
+
+  get player() {
+    return this.city.player
   }
 
   destroy() {

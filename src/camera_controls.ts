@@ -29,7 +29,7 @@ export default class CameraControls {
   private _raycaster: Raycaster;
   private _mouse: Vector2;
   
-  constructor(camera: Camera, domElement: HTMLElement = document.body) {
+  constructor(camera: Camera, domElement: HTMLElement = document.body, events = true) {
     this.camera = camera
     this.domElement = domElement
     this.groundPlane = new Plane(new Vector3(0, 1, 0), 0)
@@ -40,13 +40,15 @@ export default class CameraControls {
     this.handleMouseDown = this.handleMouseDown.bind(this)
     this.handleMouseUp = this.handleMouseUp.bind(this)
     this.handleMouseMove = this.handleMouseMove.bind(this)
-    this.domElement.addEventListener('keydown', this.handleKeyDown, false)
-    this.domElement.addEventListener('wheel', this.handleWheel, false)
-    this.domElement.addEventListener('contextmenu', this.handleContextMenu, false)
-    window.addEventListener('mousedown', this.handleMouseDown, false)
-    window.addEventListener('mouseup', this.handleMouseUp, false)
-    window.addEventListener('mousemove', this.handleMouseMove, false)
-    // this.domElement.addEventListener('mouseleave', this.handleMouseUp, false)
+    if (events) {
+      this.domElement.addEventListener('keydown', this.handleKeyDown, false)
+      this.domElement.addEventListener('wheel', this.handleWheel, false)
+      this.domElement.addEventListener('contextmenu', this.handleContextMenu, false)
+      window.addEventListener('mousedown', this.handleMouseDown, false)
+      window.addEventListener('mouseup', this.handleMouseUp, false)
+      window.addEventListener('mousemove', this.handleMouseMove, false)
+      // this.domElement.addEventListener('mouseleave', this.handleMouseUp, false)
+    }
     
     this._camDirection = new Vector3()
     this._camRight = new Vector3()

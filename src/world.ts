@@ -23,12 +23,12 @@ export default class World {
   tiles: Tile[][]
   continents: Continent[] = []
 
-  constructor(setter: (p: Point) => Tile) {
+  constructor(setter: (p: Point, world: World) => Tile) {
     this.tiles = new Array(HEIGHT)
     for (let y = 0; y < HEIGHT; y++) {
       let row = new Array(WIDTH)
       for (let x = 0; x < WIDTH; x++) {
-        row[x] = setter([x, y])
+        row[x] = setter([x, y], this)
       }
       this.tiles[y] = row
     }
