@@ -68,7 +68,7 @@ export default class CityScreen {
     dirLight.position.set(-1, 2, 1)
     this.mapScene.add(dirLight)
 
-    let observer = new ResizeObserver(entries => {
+    let observer = new ResizeObserver(() => {
       this.mapCamera.aspect = cityView.clientWidth / cityView.clientHeight
       this.mapRenderer.setSize(cityView.clientWidth, cityView.clientHeight)
       this.mapRenderer.render(this.mapScene, this.mapCamera)

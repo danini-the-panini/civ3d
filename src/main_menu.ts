@@ -1,21 +1,9 @@
-import { AmbientLight, BoxGeometry, Mesh, MeshLambertMaterial, Object3D, PerspectiveCamera, PointLight, Renderer, Scene } from "three";
-import { loadModel } from "./gltf_helpers";
-import GameState from "./game_state";
-import { Font, FontLoader, TextGeometry } from "three/examples/jsm/Addons.js";
+import { PerspectiveCamera, PointLight, Scene } from 'three'
+import { loadModel } from './gltf_helpers'
+import GameState from './game_state'
 
 function rad(degrees: number): number {
   return degrees * (Math.PI/180.0)
-}
-
-const loader = new FontLoader();
-
-function loadFont(name: string): Promise<Font> {
-  return new Promise((resolve, reject) => {
-    loader.load(`fonts/${name}.typeface.json`, resolve, () => {}, error => {
-      console.error(`Failed to load font "${name}"`)
-      reject(error)
-    })
-  })
 }
 
 export default class MainMenu extends GameState {

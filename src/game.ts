@@ -1,12 +1,8 @@
-import terrainVertexShader from './shaders/terrain.vert?raw'
-import terrainFragmentShader from './shaders/terrain.frag?raw'
 import {
   AmbientLight,
   DirectionalLight,
-  Mesh,
   PerspectiveCamera,
   Scene,
-  ShaderMaterial,
 } from "three";
 import GameState from "./game_state";
 import { Thing } from "./gltf_helpers";
@@ -14,10 +10,9 @@ import { BiomeType } from "./biome";
 import CameraControls from "./camera_controls";
 import World, { Point, HEIGHT, WIDTH } from "./world";
 import WorldGenerator from "./world_generator";
-import { capitalize, irand, position2d, position3d } from './helpers';
+import { capitalize, irand, position2d } from './helpers';
 import Player from './player';
 import Unit, { UnitType } from './unit';
-import { calcn, calcon, calcr } from './calc_helpers';
 import City from './city';
 import { Font } from 'three/examples/jsm/Addons.js';
 import ResourceManager from './resource_manager'

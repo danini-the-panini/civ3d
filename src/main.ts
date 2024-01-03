@@ -39,3 +39,4 @@ function animate(time: number) {
 	currentState.render(renderer)
 }
 requestAnimationFrame(animate)
+setTimeout(onWindowResize, 1)

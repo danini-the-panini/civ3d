@@ -5,11 +5,13 @@ export default abstract class GameState extends EventTarget {
   camera!: PerspectiveCamera
   app: HTMLElement
   canvas: HTMLCanvasElement;
+  private _viewport: HTMLElement;
 
   constructor(ui: HTMLElement, canvas: HTMLCanvasElement) {
     super()
     this.app = ui
     this.canvas = canvas
+    this._viewport = document.getElementById('viewport')!
   }
 
   abstract init(): Promise<void>
@@ -23,7 +25,7 @@ export default abstract class GameState extends EventTarget {
   
 
   onWindowResize() {
-    this.camera.aspect = window.innerWidth / window.innerHeight
+    this.camera.aspect = this._viewport.clientWidth / this._viewport.clientHeight
     this.camera.updateProjectionMatrix()
   }
 }
