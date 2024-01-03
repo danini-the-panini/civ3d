@@ -1,6 +1,7 @@
-import { BiomeType } from "./biome"
-import Continent from "./continent"
-import Tile from "./tile"
+import { BiomeType } from "./Biome"
+import Continent from "./Continent"
+import Game from "./Game"
+import Tile from "./Tile"
 
 export type Point = [number, number]
 
@@ -20,10 +21,12 @@ export const BFC = BIG_FAT_CROSS
 export const BFC_W_CENTRE = [[0, 0], ...BFC]
 
 export default class World {
+  game: Game
   tiles: Tile[][]
   continents: Continent[] = []
 
-  constructor(setter: (p: Point, world: World) => Tile) {
+  constructor(game: Game, setter: (p: Point, world: World) => Tile) {
+    this.game = game
     this.tiles = new Array(HEIGHT)
     for (let y = 0; y < HEIGHT; y++) {
       let row = new Array(WIDTH)

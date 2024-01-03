@@ -1,5 +1,5 @@
 import { Camera, Plane, Ray, Raycaster, Vector2, Vector3 } from 'three';
-import { Point } from './world';
+import { Point } from './World';
 import { position3d } from './helpers';
 import * as TweenHelper from './tween'
 import { Easing, Tween } from 'three/examples/jsm/libs/tween.module.js';

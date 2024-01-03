@@ -285,6 +285,13 @@ body {
   grid-area: buildings;
 }
 
+#app.game .city_screen .buildings_list ul {
+  color: white;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 #app.game .city_screen .resources_panel {
   grid-area: resources;
 }
@@ -337,6 +344,11 @@ body {
 
 #app.game .city_screen .build_panel {
   grid-area: build;
+}
+
+#app.game .city_screen .build_panel canvas {
+  z-index: 1;
+  position: relative;
 }
 
 #app.game .city_screen .exit_button {

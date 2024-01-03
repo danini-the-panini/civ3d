@@ -1,7 +1,8 @@
-import Biome, { BiomeType } from "./biome"
+import Biome, { BiomeType } from "./Biome"
+import Game from "./Game"
 import { irand } from "./helpers"
-import Tile from "./tile"
-import World, { BFC_W_CENTRE, DIAGONALS, HEIGHT, NEIGHBOURS, Point, WIDTH } from "./world"
+import Tile from "./Tile"
+import World, { BFC_W_CENTRE, DIAGONALS, HEIGHT, NEIGHBOURS, Point, WIDTH } from "./World"
 
 type Layer<T> = T[][]
 type Landmass = Layer<number>
@@ -80,7 +81,7 @@ export default class WorldGenerator {
     this.tmw = irand(0xFFFFF)
   }
 
-  generate(): World {
+  generate(game: Game): World {
     let land = this.generateLandMass()
     let biomes = this.temperatureAdjustments(land)
     this.climateAdjustments(biomes)
@@ -88,14 +89,16 @@ export default class WorldGenerator {
     this.generateRivers(biomes)
     this.generatePoles(biomes)
 
-    return new World((p, world) => new Tile(
-      world,
+    let world = new World(game, p => new Tile(
+      game,
       get(biomes, p),
       p,
       this.hasResource(p, get(biomes, p)),
       this.hasHut(p, get(biomes, p)),
       this.calcLandValue(biomes, p)
     ))
+    game.world = world
+    return world
   }
 
   generateLandMass(): Landmass {

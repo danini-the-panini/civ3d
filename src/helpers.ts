@@ -1,5 +1,7 @@
 import { Vector3 } from "three"
-import { Point, WIDTH } from "./world"
+import { Point, WIDTH } from "./World"
+
+export type Class<T> = new (...args: any[]) => T
 
 export function irand(i: number): number {
   return Math.floor(Math.random() * i)

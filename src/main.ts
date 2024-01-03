@@ -1,9 +1,9 @@
 import './style.css'
 
 import { WebGLRenderer } from 'three'
-import GameState from './game_state'
-import MainMenu from './main_menu'
-import Game from './game'
+import GameState from './GameState'
+import MainMenu from './MainMenu'
+import Game from './Game'
 import * as TweenHelper from './tween'
 
 const app = document.getElementById('app')!

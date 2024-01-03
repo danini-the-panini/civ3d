@@ -2,13 +2,15 @@ import terrainVertexShader from './shaders/terrain.vert?raw'
 import terrainFragmentShader from './shaders/terrain.frag?raw'
 
 import { BufferGeometry, Mesh, Object3D, ShaderMaterial } from 'three'
-import Biome, { BiomeType, ImpEffect } from './biome'
-import Continent from './continent'
-import World, { Point } from './world'
-import City from './city'
+import Biome, { BiomeType, ImpEffect } from './Biome'
+import Continent from './Continent'
+import { Point } from './World'
+import City from './City'
 import { position3d } from './helpers'
-import ResourceManager from './resource_manager'
+import ResourceManager from './ResourceManager'
 import { calcn, calcon, calcr } from './calc_helpers'
+import Game from './Game'
+import BaseUnit from './units/BaseUnit'
 
 type TerrainMesh = Mesh<BufferGeometry, ShaderMaterial>
 
@@ -29,7 +31,7 @@ interface Clone<T> {
 }
 
 export default class Tile implements Clone<Tile> {
-  world: World
+  game: Game
   biome: Biome
   position: Point
   resource: boolean
@@ -44,7 +46,7 @@ export default class Tile implements Clone<Tile> {
   private _city?: City
 
   constructor(
-    world: World,
+    game: Game,
     biome: BiomeType,
     position: Point,
     resource: boolean,
@@ -55,7 +57,7 @@ export default class Tile implements Clone<Tile> {
     fortress = false,
     continent: Continent | undefined = undefined
   ) {
-    this.world = world
+    this.game = game
     this.biome = new Biome(biome)
     this.position = position
     this.resource = resource
@@ -65,6 +67,20 @@ export default class Tile implements Clone<Tile> {
     this.road = road
     this.fortress = fortress
     this.continent = continent
+  }
+
+  get world() {
+    return this.game.world
+  }
+
+  get units(): BaseUnit[] {
+    let units: BaseUnit[] = []
+    this.eachUnit(u => units.push(u))
+    return units
+  }
+
+  eachUnit(f: (u: BaseUnit) => void) {
+    this.game.eachUnitAt(this.position, f)
   }
 
   createObject(attach = true): [Object3D, TerrainMesh[]] {
@@ -175,7 +191,7 @@ export default class Tile implements Clone<Tile> {
     return f
   }
 
-  get resources(): number {
+  get shields(): number {
     let [,r,] = this.attributes
     if (this.improvement === Improvement.Mine) {
       let mine = this.biome.mine
@@ -216,7 +232,7 @@ export default class Tile implements Clone<Tile> {
 
   clone(): Tile {
     return new Tile(
-      this.world,
+      this.game,
       this.biome.type,
       this.position,
       this.resource,

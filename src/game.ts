@@ -3,21 +3,23 @@ import {
   DirectionalLight,
   PerspectiveCamera,
   Scene,
-} from "three";
-import GameState from "./game_state";
-import { Thing } from "./gltf_helpers";
-import { BiomeType } from "./biome";
-import CameraControls from "./camera_controls";
-import World, { Point, HEIGHT, WIDTH } from "./world";
-import WorldGenerator from "./world_generator";
-import { capitalize, irand, position2d } from './helpers';
-import Player from './player';
-import Unit, { UnitType } from './unit';
-import City from './city';
-import { Font } from 'three/examples/jsm/Addons.js';
-import ResourceManager from './resource_manager'
-import CityScreen from './city_screen';
-import { degToRad } from 'three/src/math/MathUtils.js';
+} from 'three'
+import GameState from './GameState'
+import { Thing } from './gltf_helpers'
+import { BiomeType } from './Biome'
+import CameraControls from './CameraControls'
+import World, { Point, HEIGHT, WIDTH } from './World'
+import WorldGenerator from './WorldGenerator'
+import { capitalize, irand, position2d } from './helpers'
+import Player from './Player'
+import City from './City'
+import { Font } from 'three/examples/jsm/Addons.js'
+import ResourceManager from './ResourceManager'
+import CityScreen from './CityScreen'
+import { degToRad } from 'three/src/math/MathUtils.js'
+import Settlers from './units/Settlers'
+import BaseUnit, { Unit } from './units/BaseUnit'
+import Palace from './buildings/Palace'
 
 const DIRS8: Point[] = [
   [ 1, -1], [ 0, -1], [-1, -1],
@@ -64,7 +66,7 @@ export default class Game extends GameState {
     dirLight.position.set(-1, 2, 1)
     this.scene.add(dirLight)
   
-    this.world = new WorldGenerator(1, 1, 1, 1).generate()
+    this.world = new WorldGenerator(1, 1, 1, 1).generate(this)
 
     this.selectTile = this.selectTile.bind(this)
     this.moveSelectedUnit = this.moveSelectedUnit.bind(this)
@@ -75,7 +77,7 @@ export default class Game extends GameState {
     return this.players[this._currentPlayerIndex]
   }
 
-  get selectedUnit() : Unit | null {
+  get selectedUnit() : BaseUnit | null {
     return this.currentPlayer.selectedUnit
   }
 
@@ -115,7 +117,7 @@ export default class Game extends GameState {
         ['Sentry', 's'],
         'GoTo',
         null,
-        ['Disband Unit', 'D']
+        ['Disband BaseUnit', 'D']
       ]],
       ['Advisors', [
         'City Status (F1)',
@@ -263,11 +265,8 @@ export default class Game extends GameState {
       // TODO: if the square's continent already contains cities, and current year is after 0, loop back to 1.
       if (tile.hut) continue
 
-      let settlers = Unit.spawn(UnitType.Settlers, [x, y], this.players[0])
+      let settlers = new Settlers([x, y], this.players[0])
       this.scene.add(settlers.object)
-
-      let unit = Unit.spawn(UnitType.Cavalry, [x, y], this.players[0])
-      this.scene.add(unit.object)
 
       this.players[0].selectedUnit = settlers
 
@@ -281,37 +280,43 @@ export default class Game extends GameState {
     console.warn('no suitable spawn point found :(')
   }
 
-  eachUnit(f: (unit: Unit) => void) {
+  eachUnit(f: (unit: BaseUnit) => void) {
     this.players.forEach(player => {
-      player.units.forEach(unit => f(unit))
+      player.units.forEach(unit => {
+        if (!unit.destroyed) f(unit)
+      })
     })
   }
 
   eachCity(f: (city: City) => void) {
     this.players.forEach(player => {
-      player.cities.forEach(city => f(city))
+      player.cities.forEach(city => {
+        if (!city.destroyed) f(city)
+      })
     })
   }
 
-  eachUnitAt([x, y]: Point, f: (unit: Unit) => void) {
+  eachUnitAt([x, y]: Point, f: (unit: BaseUnit) => void) {
     this.eachUnit(unit => {
-      if (unit.position[0] === x && unit.position[1] === y) f(unit)
+      if (!unit.destroyed && unit.position[0] === x && unit.position[1] === y) f(unit)
     })
   }
 
-  unitAt(p: Point, except?: Unit): Unit | null {
-    let unit: Unit | null = null
+  unitAt(p: Point, except?: BaseUnit): BaseUnit | null {
+    let unit: BaseUnit | null = null
     this.eachUnitAt(p, u => {
-      if (u !== except) unit = u
+      if (!u.destroyed && u !== except) unit = u
     })
     return unit
   }
   
   cityAt([x, y]: Point): City | undefined {
-    return this.world.get(x, y).city
+    let city = this.world.get(x, y).city
+    if (city?.destroyed) return
+    return city
   }
 
-  focusOn(unit: Unit | null, immediate = false) {
+  focusOn(unit: BaseUnit | null, immediate = false) {
     if (unit) {
       if (immediate) {
         this.cameraControls.goTo(unit.position, 0.2)
@@ -358,6 +363,8 @@ export default class Game extends GameState {
   }
 
   endTurn() {
+    this.currentPlayer.removeDestroyedUnits()
+    this.currentPlayer.removeDestroyedCities()
     this.nextPlayer()
     this.currentPlayer.startTurn()
     this.focusOn(this.currentPlayer.selectedUnit)
@@ -365,14 +372,19 @@ export default class Game extends GameState {
   }
 
   buildCity() {
-    if (this.selectedUnit?.type !== UnitType.Settlers) return
+    if (this.selectedUnit?.class.type !== Unit.Settlers) return
 
     let name = prompt('City name...')
     if (!name) return
 
     let city = City.spawn(this.currentPlayer, this.selectedUnit.position, name)
 
-    this.selectedUnit.remove()
+    if (this.currentPlayer.cities.length === 1) {
+      city.buildings.push(new Palace(city))
+    }
+
+    this.selectedUnit.destroy()
+    this.updateCurrentInfo()
     this.focusOn(this.currentPlayer.selectedUnit)
 
     this.cityScreen = new CityScreen(city, this)
@@ -395,8 +407,8 @@ export default class Game extends GameState {
       let tile = this.world.get(...unit.position)
       this.currentInfo.innerHTML = `
       Romans<br>
-      ${capitalize(unit.type)}<br>
-      Moves: ${unit.movement}<br>
+      ${capitalize(unit.class.type)}<br>
+      Moves: ${unit.class.movement}<br>
       NONE<br>
       (${capitalize(tile.biome.type)})
       `

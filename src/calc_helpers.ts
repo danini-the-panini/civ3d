@@ -1,6 +1,6 @@
-import { BiomeType } from "./biome"
-import { Road } from "./tile"
-import World, { HEIGHT, Point, WIDTH } from "./world"
+import { BiomeType } from "./Biome"
+import { Road } from "./Tile"
+import World, { HEIGHT, Point, WIDTH } from "./World"
 
 const DIRS: Point[] = [[0,1],[-1,0],[0,-1],[1,0]]
 

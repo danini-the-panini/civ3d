@@ -1,14 +1,16 @@
-import { calcf } from "./calc_helpers";
-import City from "./city";
-import Game from "./game";
-import Unit from "./unit";
-import World, { DIRECTIONS, HEIGHT, NEIGHBOURS, Point, WIDTH } from "./world";
+import Advance from './advances'
+import { calcf } from './calc_helpers'
+import City from './City'
+import Game from './Game'
+import BaseUnit from './units/BaseUnit'
+import World, { DIRECTIONS, HEIGHT, NEIGHBOURS, Point, WIDTH } from './World'
 
 export default class Player {
   game: Game;
-  units: Unit[] = []
+  units: BaseUnit[] = []
   cities: City[] = []
   visible: boolean[][]
+  currentAdvance?: Advance
   private _selectedIndex: number | null = null
 
   constructor(game: Game) {
@@ -29,6 +31,13 @@ export default class Player {
   set selectedIndex(value: number | null) {
     this._deselectCurrentUnit()
     if (value !== null && value >= 0 && value < this.units.length) {
+      while (value < this.units.length && this.units[value].destroyed) {
+        value++
+      }
+      if (value >= this.units.length) {
+        this._selectedIndex = null
+        return
+      }
       this._selectedIndex = value
       this._selectCurrentUnit()
     } else {
@@ -36,11 +45,11 @@ export default class Player {
     }
   }
 
-  set selectedUnit(unit: Unit | null) {
+  set selectedUnit(unit: BaseUnit | null) {
     this.selectedIndex = unit ? this.units.indexOf(unit) : null
   }
 
-  get selectedUnit(): Unit | null {
+  get selectedUnit(): BaseUnit | null {
     if (this._selectedIndex === null) return null
     return this.units[this._selectedIndex]
   }
@@ -79,17 +88,25 @@ export default class Player {
   }
 
   startTurn() {
-    this.units.forEach(unit => unit.startTurn())
+    this.units.filter(u => !u.destroyed).forEach(unit => unit.startTurn())
     this.selectedIndex = 0
   }
 
-  removeUnit(unit: Unit) {
-    let index = this.units.indexOf(unit)
-    if (index < 0) return
-    if (index === this._selectedIndex) this._deselectCurrentUnit()
-    this.units.splice(index, 1)
-    if (this._selectedIndex !== null && this._selectedIndex >= this.units.length) this._selectedIndex = 0
-    this._selectCurrentUnit()
+  removeUnit() {
+    this.selectedIndex = this._selectedIndex
+  }
+
+  removeCity(city: City) {
+    this.cities.splice(this.cities.indexOf(city), 1)
+  }
+
+  removeDestroyedCities() {
+    this.cities = this.cities.filter(c => !c.destroyed)
+  }
+
+  removeDestroyedUnits() {
+    this.units = this.units.filter(u => !u.destroyed)
+    this.cities.forEach(c => c.removeDestroyedUnits())
   }
 
   _deselectCurrentUnit() {

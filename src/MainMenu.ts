@@ -1,6 +1,6 @@
 import { PerspectiveCamera, PointLight, Scene } from 'three'
 import { loadModel } from './gltf_helpers'
-import GameState from './game_state'
+import GameState from './GameState'
 
 function rad(degrees: number): number {
   return degrees * (Math.PI/180.0)
