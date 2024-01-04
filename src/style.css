@@ -242,7 +242,7 @@ body {
   position: relative;
 }
 
-#app.game .city_screen .panel:not(.panel--no-color)::before {
+#app.game .city_screen .panel::before {
   content: '';
   position: absolute;
   top: 0;
@@ -300,8 +300,11 @@ body {
   grid-area: units;
 }
 
-#app.game .city_screen .city_view {
+#app.game .city_screen .map_view {
   grid-area: map;
+}
+#app.game .city_screen .map_view canvas {
+  position: relative;
 }
 
 #app.game .city_screen .food_storage {
@@ -347,7 +350,6 @@ body {
 }
 
 #app.game .city_screen .build_panel canvas {
-  z-index: 1;
   position: relative;
 }
 

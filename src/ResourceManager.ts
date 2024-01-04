@@ -2,12 +2,22 @@ import { BufferGeometry, DoubleSide, Mesh, MeshStandardMaterial, Texture } from 
 import { Thing, loadModel, loadThing } from "./gltf_helpers"
 import { Font, FontLoader } from "three/examples/jsm/Addons.js"
 
-
 type Terrain = { mat: MeshStandardMaterial, geom: BufferGeometry[] }
 type Ocean = { mat: MeshStandardMaterial, geom: Record<number, BufferGeometry[]> }
 
 function getnum(str: string): number {
   return parseInt(str.match(/\d+/)![0], 10)
+}
+
+async function loadThingsFrom(path: string): Promise<Record<string, Thing>> {
+  let gltf = await loadModel(path)
+  let things: Record<string, Thing> = {};
+  [...gltf.scene.children].forEach((child) => {
+    let mat = (child as Mesh).material as MeshStandardMaterial
+    let geom = (child as Mesh).geometry
+    things[child.name] = { mat, geom }
+  })
+  return things
 }
 
 async function loadTerrainLike(path: string): Promise<Terrain> {
@@ -113,6 +123,7 @@ class ResourceManager {
   roadTex!: Texture
   railroadTex!: Texture
   fogTex!: Texture
+  cityResources!: Record<string, Thing>
 
   constructor() {
     this.promise = this.load()
@@ -139,7 +150,8 @@ class ResourceManager {
       this.slab,
       this.citySlab,
       this.cityGrid,
-      this.font
+      this.font,
+      this.cityResources
     ] = await Promise.all([
       loadAllTerrains('base', 'mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'river', 'fog'),
       loadAllResources('mountains', 'hills', 'forest', 'desert', 'arctic', 'tundra', 'grassland', 'plains', 'jungle', 'swamp', 'ocean'),
@@ -158,7 +170,8 @@ class ResourceManager {
       loadThing('units/slab.glb'),
       loadThing('improvements/city_slab.glb'),
       loadThing('improvements/city_grid.glb'),
-      loadFont('civ')
+      loadFont('civ'),
+      loadThingsFrom('ui/city_resources.glb')
     ])
 
     
@@ -174,6 +187,10 @@ class ResourceManager {
     this.pollution.mat.alphaTest = 0.0
     this.pollution.mat.transparent = true
     this.pollution.mat.side = DoubleSide
+  }
+
+  meshFromThing(thing: Thing): Mesh {
+    return new Mesh(thing.geom, thing.mat)
   }
 }
 

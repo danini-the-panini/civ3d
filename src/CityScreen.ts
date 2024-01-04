@@ -5,7 +5,9 @@ import { BFC, HEIGHT } from './World'
 import CameraControls from './CameraControls'
 import { calcf } from './calc_helpers'
 import { degToRad } from 'three/src/math/MathUtils.js'
-import { position3d } from './helpers'
+import { position2d, position3d } from './helpers'
+import ResourceManager from './ResourceManager'
+import Tile from './Tile'
 
 export default class CityScreen {
   element: HTMLDialogElement
@@ -24,6 +26,7 @@ export default class CityScreen {
   buildScene!: Scene
   buildCamera!: PerspectiveCamera
   buildObject: Object3D = new Object3D()
+  resourceTiles: Map<Tile, Object3D> = new Map<Tile, Object3D>();
   private _lastTime: number = 0
 
   constructor(city: City, game: Game) {
@@ -183,10 +186,11 @@ export default class CityScreen {
 
   private createCityView() {
     this.mapView = document.createElement('div')
-    this.mapView.classList.add('city_view', 'panel', 'panel--no-color')
+    this.mapView.classList.add('map_view', 'panel')
     this.element.append(this.mapView)
 
-    this.mapRenderer = new WebGLRenderer()
+    this.mapRenderer = new WebGLRenderer({ alpha: true })
+    this.mapRenderer.setClearColor(0xffffff, 0)
     this.mapRenderer.setSize(160, 160)
     this.mapView.appendChild(this.mapRenderer.domElement)
     this.mapScene = new Scene()
@@ -230,8 +234,53 @@ export default class CityScreen {
     let cityObject = City.createObject(this.city.size)
     cityObject.position.set(...position3d(...this.city.position))
     this.mapScene.add(cityObject)
+    this.createResourceObjects()
+
+    this.mapRenderer.domElement.addEventListener('click', event => {
+      let p = position2d(cameraControls.getMousePointOnMap(event))
+      let tile = this.world.get(...p)
+      if (p[0] === this.city.position[0] && p[1] === this.city.position[1]) {
+        this.city.resetResourceTiles()
+        this.resourceTiles.forEach(obj => this.mapScene.remove(obj))
+        this.resourceTiles.clear()
+        this.createResourceObjects()
+      } else if (this.city.isResourceTile(tile)) {
+        this.city.removeResourceTile(tile)
+        this.mapScene.remove(this.resourceTiles.get(tile)!)
+        this.resourceTiles.delete(tile)
+      } else {
+        if (this.city.setResourceTile(tile)) {
+          this.createResourceObject(tile)
+        }
+      }
+      requestAnimationFrame(() => this.mapRenderer.render(this.mapScene, this.mapCamera))
+    })
 
     cameraControls.goTo(this.city.position, 0.25)
+  }
+
+  private createResourceObjects() {
+    [...this.city.resourceTiles, this.world.get(...this.city.position)]
+      .forEach(tile => this.createResourceObject(tile))
+  }
+
+  private createResourceObject(tile: Tile) {
+    let things = []
+    for (let i = 0; i < tile.food; i++) things.push('food')
+    for (let i = 0; i < tile.shields; i++) things.push('shields')
+    for (let i = 0; i < tile.trade; i++) things.push('trade')
+    let c = Math.max(2, Math.ceil(things.length / 2))
+    let object = new Object3D()
+    object.position.set(...position3d(...tile.position))
+    things.forEach((thing, f) => {
+      let mesh = ResourceManager.meshFromThing(ResourceManager.cityResources[thing])
+      if (f < c) mesh.position.z -= 0.5
+      mesh.position.x += (f%c)/c
+      mesh.position.y += 0.25
+      object.add(mesh)
+    })
+    this.mapScene.add(object)
+    this.resourceTiles.set(tile, object)
   }
 
   private createResourcesPanel() {

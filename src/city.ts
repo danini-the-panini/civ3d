@@ -241,6 +241,27 @@ export default class City {
     this.updateSpecialists()
   }
 
+  resetResourceTiles() {
+    this.resourceTiles = []
+    for (let i = 0; i < this.size; i++) {
+      this.setResourceTiles()
+    }
+  }
+
+  removeResourceTile(tile: Tile) {
+    this.resourceTiles.splice(this.resourceTiles.indexOf(tile), 1)
+    this.updateSpecialists()
+  }
+
+  setResourceTile(tile: Tile) {
+    if (this.resourceTiles.length < this.size && !this.isResourceTile(tile) && !this.invalidTile(tile)) {
+      this.resourceTiles.push(tile)
+      this.updateSpecialists()
+      return true
+    }
+    return false
+  }
+
   occupiedTile(tile: Tile): boolean {
     if (this.resourceTiles.includes(tile)) return false
     return this.invalidTile(tile)
@@ -248,6 +269,7 @@ export default class City {
 
   invalidTile(tile: Tile): boolean {
     let invalid = false
+    if (!this.player.isVisible(tile.position)) return true
     this.game.eachCity(city => {
       if (city === this) return
       if (city.isResourceTile(tile)) invalid = true

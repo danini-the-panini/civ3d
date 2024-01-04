@@ -87,6 +87,10 @@ export default class Player {
     })
   }
 
+  isVisible([x, y]: Point): boolean {
+    return this.visible[y][x]
+  }
+
   startTurn() {
     this.units.filter(u => !u.destroyed).forEach(unit => unit.startTurn())
     this.selectedIndex = 0
