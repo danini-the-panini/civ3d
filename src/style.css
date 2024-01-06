@@ -215,8 +215,8 @@ body {
   display: grid;
   line-height: normal;
 
-  grid-template-rows: auto auto 1fr;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: auto 85px 125px 1fr;
+  grid-template-columns: 212px 212px 212px;
 
   grid-template-areas:
     'name      name buildings'
@@ -228,6 +228,8 @@ body {
 
   border: 2px solid black;
   padding: 0;
+
+  height: 480px;
 }
 
 ::backdrop {
@@ -296,12 +298,115 @@ body {
   grid-area: resources;
 }
 
+#app.game .city_screen .resources {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+#app.game .city_screen .resources .extra {
+  display: flex;
+  gap: 0.5rem;
+}
+
+#app.game .city_screen .resources .food {
+  grid-area: food;
+}
+
+#app.game .city_screen .resources .food span.item::before {
+  background-position: 0 0;
+}
+
+#app.game .city_screen .resources .shields {
+  grid-area: shields;
+}
+
+#app.game .city_screen .resources .shields span.item::before {
+  background-position: -16px 0;
+}
+
+#app.game .city_screen .resources .trade {
+  grid-area: trade;
+}
+
+#app.game .city_screen .resources .trade span.item::before {
+  background-position: -32px 0;
+}
+
+#app.game .city_screen .resources .luxuries {
+  grid-area: luxuries;
+}
+
+#app.game .city_screen .resources .luxuries span.item::before {
+  background-position: -16px -16px;
+}
+
+#app.game .city_screen .resources .gold {
+  grid-area: gold;
+}
+
+#app.game .city_screen .resources .gold span.item::before {
+  background-position: -32px -16px;
+}
+
+#app.game .city_screen .resources .science {
+  grid-area: science;
+}
+
+#app.game .city_screen .resources .science span.item::before {
+  background-position: 0 -16px;
+}
+
+#app.game .city_screen .resources .resource {
+  display: flex;
+  height: 1rem;
+}
+
+#app.game .city_screen .resources .resource > *:last-child {
+  min-width: 1rem;
+}
+
+#app.game .city_screen .resources .resource span.item {
+  width: 1rem;
+  max-width: 1rem;
+  height: 1rem;
+  flex: 1 1;
+  position: relative;
+}
+
+#app.game .city_screen .resources .resource span.item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 1rem;
+  background-size: 48px;
+  image-rendering: pixelated;
+}
+
+#app.game .city_screen .resources .resource span.space {
+  width: 1rem;
+  max-width: 0.5rem;
+}
+
+#app.game .city_screen .resources .resource span.good::before {
+  background-image: url('images/resources.png');
+}
+
+#app.game .city_screen .resources .resource span.bad::before {
+  background-image: url('images/resources_bad.png');
+}
+
 #app.game .city_screen .units_panel {
   grid-area: units;
 }
 
 #app.game .city_screen .map_view {
   grid-area: map;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
 }
 #app.game .city_screen .map_view canvas {
   position: relative;

@@ -14,6 +14,12 @@ export default class CityScreen {
   city: City
   buildingList!: HTMLElement
   resources!: HTMLElement
+  foodResources!: HTMLDivElement
+  shieldsResources!: HTMLDivElement
+  tradeResources!: HTMLDivElement
+  luxuriesResources!: HTMLDivElement
+  goldResources!: HTMLDivElement
+  scienceResources!: HTMLDivElement
   foodStorage!: HTMLElement
   changeButton!: HTMLButtonElement
   game: Game
@@ -253,6 +259,7 @@ export default class CityScreen {
           this.createResourceObject(tile)
         }
       }
+      this.updateResources()
       requestAnimationFrame(() => this.mapRenderer.render(this.mapScene, this.mapCamera))
     })
 
@@ -260,8 +267,7 @@ export default class CityScreen {
   }
 
   private createResourceObjects() {
-    [...this.city.resourceTiles, this.world.get(...this.city.position)]
-      .forEach(tile => this.createResourceObject(tile))
+    this.city.resourceTiles.forEach(tile => this.createResourceObject(tile))
   }
 
   private createResourceObject(tile: Tile) {
@@ -275,7 +281,11 @@ export default class CityScreen {
     things.forEach((thing, f) => {
       let mesh = ResourceManager.meshFromThing(ResourceManager.cityResources[thing])
       if (f < c) mesh.position.z -= 0.5
-      mesh.position.x += (f%c)/c
+      if (f%c === c-1) {
+        mesh.position.x += 0.5
+      } else {
+        mesh.position.x += (f%(c-1)) * (0.5/(c-1))
+      }
       mesh.position.y += 0.25
       object.add(mesh)
     })
@@ -292,11 +302,71 @@ export default class CityScreen {
     resourcesPanel.append(resourcesHeader)
     this.resources = document.createElement('div')
     this.resources.classList.add('resources')
+    this.foodResources = this.createResources('food')
+    this.resources.append(this.foodResources)
+    this.shieldsResources = this.createResources('shields')
+    this.resources.append(this.shieldsResources)
+    this.tradeResources = this.createResources('trade')
+    this.resources.append(this.tradeResources)
+    let extra = document.createElement('div')
+    extra.classList.add('extra')
+    this.luxuriesResources = this.createResources('luxuries')
+    extra.append(this.luxuriesResources)
+    this.goldResources = this.createResources('gold')
+    extra.append(this.goldResources)
+    this.scienceResources = this.createResources('science')
+    extra.append(this.scienceResources)
+    this.resources.append(extra)
     resourcesPanel.append(this.resources)
     this.element.append(resourcesPanel)
+
+    this.updateResources()
+
     let unitsPanel = document.createElement('div')
     unitsPanel.classList.add('units_panel', 'panel')
     this.element.append(unitsPanel)
+  }
+
+  private createResources(type: string) {
+    let element = document.createElement('div')
+    element.classList.add('resource', type)
+    return element
+  }
+
+  private updateResource(element: HTMLElement, total: number, costs: number = 0) {
+    element.innerHTML = ''
+
+    let income = total - costs
+    let coveredCosts = costs + Math.min(0, income)
+
+    console.log(`${[...element.classList][1]}: ${total}-${costs}: ${coveredCosts} / ${income}`)
+
+    let parts = []
+    if (coveredCosts) parts.push(coveredCosts)
+    if (income) parts.push(income)
+    parts = parts.filter(x => x)
+
+    parts.forEach((p, i) => {
+      if (i > 0) {
+        let space = document.createElement('span')
+        space.classList.add('item', 'space')
+        element.append(space)
+      }
+      for (let i = 0; i < Math.abs(p); i++) {
+        let item = document.createElement('span')
+        item.classList.add('item', p < 0 ? 'bad' : 'good')
+        element.append(item)
+      }
+    })
+  }
+
+  private updateResources() {
+    this.updateResource(this.foodResources, this.city.foodTotal, this.city.foodCosts)
+    this.updateResource(this.shieldsResources, this.city.shieldTotal, this.city.shieldCosts)
+    this.updateResource(this.tradeResources, this.city.tradeTotal)
+    this.updateResource(this.luxuriesResources, 0) // TODO
+    this.updateResource(this.goldResources, 0) // TODO
+    this.updateResource(this.scienceResources, 0) // TODO
   }
 
   private createNamePanel() {

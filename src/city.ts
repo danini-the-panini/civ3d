@@ -26,9 +26,9 @@ export default class City {
   wonders: BaseWonder[] = []
   units: BaseUnit[] = []
   cityTiles: Tile[] = []
-  resourceTiles: Tile[] = []
   object: Object3D = new Object3D()
   destroyed = false
+  private _resourceTiles: Tile[] = []
   private _size: number = 1
 
   constructor(player: Player, position: Point, name: string) {
@@ -97,9 +97,14 @@ export default class City {
     }
   }
 
+  get resourceTiles() {
+    return [...this._resourceTiles, this.world.get(...this.position)]
+  }
+
   get foodCosts(): number {
+    let costs = this.size * 2
     // TODO: sum settler count, depending on government
-    return 0
+    return costs
   }
 
   get foodTotal() {
@@ -143,7 +148,11 @@ export default class City {
 
   get tradeTotal(): number {
     // TODO: modify trade value based on governement / railroad / wonders
-    return this.resourceTiles.reduce((a, t) => a + t.trade, 0) - this.corruption
+    return this.resourceTiles.reduce((a, t) => a + t.trade, 0)
+  }
+
+  get tradeIncome(): number {
+    return this.tradeTotal - this.corruption
   }
 
   startTurn() {
@@ -225,16 +234,16 @@ export default class City {
   }
 
   setResourceTiles() {
-    while (this.resourceTiles.length > this.size) {
-      this.resourceTiles.pop()
+    while (this._resourceTiles.length > this.size) {
+      this._resourceTiles.pop()
     }
-    if (this.resourceTiles.length === this.size) return
-    if (this.resourceTiles.length < this.size) {
+    if (this._resourceTiles.length === this.size) return
+    if (this._resourceTiles.length < this.size) {
       let tiles = this.cityTiles
         .filter(tile => !this.occupiedTile(tile) && !this.isResourceTile(tile))
         .sort((a, b) => b.food - a.food || b.shields - a.shields || b.trade - a.shields)
       if (tiles.length > 0) {
-        this.resourceTiles.push(tiles[0])
+        this._resourceTiles.push(tiles[0])
       }
     }
 
@@ -242,20 +251,20 @@ export default class City {
   }
 
   resetResourceTiles() {
-    this.resourceTiles = []
+    this._resourceTiles = []
     for (let i = 0; i < this.size; i++) {
       this.setResourceTiles()
     }
   }
 
   removeResourceTile(tile: Tile) {
-    this.resourceTiles.splice(this.resourceTiles.indexOf(tile), 1)
+    this._resourceTiles.splice(this._resourceTiles.indexOf(tile), 1)
     this.updateSpecialists()
   }
 
   setResourceTile(tile: Tile) {
-    if (this.resourceTiles.length < this.size && !this.isResourceTile(tile) && !this.invalidTile(tile)) {
-      this.resourceTiles.push(tile)
+    if (this._resourceTiles.length < this.size && !this.isResourceTile(tile) && !this.invalidTile(tile)) {
+      this._resourceTiles.push(tile)
       this.updateSpecialists()
       return true
     }
@@ -263,7 +272,7 @@ export default class City {
   }
 
   occupiedTile(tile: Tile): boolean {
-    if (this.resourceTiles.includes(tile)) return false
+    if (this._resourceTiles.includes(tile)) return false
     return this.invalidTile(tile)
   }
 
