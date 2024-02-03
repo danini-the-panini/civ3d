@@ -477,10 +477,41 @@ body {
 
 #app.game .city_screen .build_panel {
   grid-area: build;
+  background: #304db2;
 }
 
 #app.game .city_screen .build_panel canvas {
   position: relative;
+}
+
+#app.game .city_screen .build_panel .build_progress {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+#app.game .city_screen .build_panel .build_progress .shield_item {
+  width: 1rem;
+  max-width: 1rem;
+  height: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+#app.game .city_screen .build_panel .build_progress {
+  background: url('images/background.png');
+}
+
+#app.game .city_screen .build_panel .build_progress .shield_item::before {
+  content: '';
+  background-image: url('images/resources.png');
+  background-size: 48px;
+  background-position: -16px 0;
+  image-rendering: pixelated;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 1rem;
 }
 
 #app.game .city_screen .exit_button {

@@ -95,6 +95,11 @@ export default class CityScreen {
     buildPanelHeader.append(buyButton)
     this.buildProgress = document.createElement('div')
     this.buildProgress.classList.add('build_progress')
+    for (let i = 0; i < this.city.shields; i++) {
+      let el = document.createElement('div')
+      el.classList.add('shield_item')
+      this.buildProgress.append(el)
+    }
     buildPanel.append(this.buildProgress)
     this.element.append(buildPanel)
 
@@ -115,8 +120,13 @@ export default class CityScreen {
     let object = this.city.currentProduction.createObject()
     this.buildObject.add(object)
     object.position.set(-0.5, 0, 0.5)
-    // this.buildObject.position.set(0.5, 0, 0.5)
     this.buildScene.add(this.buildObject)
+
+    requestAnimationFrame(() => {
+      let w = this.buildProgress.clientWidth/16
+      console.log(`W: ${w}`)
+      this.buildProgress.style.height = `${Math.ceil(this.city.currentProduction.production/w)*16}px`
+    })
   }
 
   private createTabsPanel() {

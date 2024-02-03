@@ -191,7 +191,6 @@ export default class City {
         this.food = this.foodRequired / 2
       }
     }
-    console.log(`FOOD: ${this.food}`)
 
     if (this.shieldIncome < 0) {
       // TODO: disband unit
@@ -199,6 +198,7 @@ export default class City {
       // TODO: ZERO if in disorder
       this.shields += this.shieldIncome
     }
+    console.log(`SHIELDS: ${this.shields}`)
 
     if (this.currentProduction && this.shields >= this.currentProduction.production) {
       if (this.currentProduction === Settlers && this.size === 1 && false /* TODO: this.game.difficulty === Difficulty.Chieftan */) {
