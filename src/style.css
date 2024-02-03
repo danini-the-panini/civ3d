@@ -128,7 +128,7 @@ body {
   grid-area: side;
   display: grid;
   grid-template-rows: auto auto 1fr;
-  background-image: url('images/background.png');
+  background-image: url('/images/background.png');
 }
 
 #app.game .mini_map, #app.game .info_section, #app.game .current_info {
@@ -164,7 +164,7 @@ body {
   position: absolute;
   left: 2.5rem;
   list-style: none;
-  background-image: url('images/background.png');
+  background-image: url('/images/background.png');
   border: 2px solid black;
   padding: 0.25rem 4px;
   margin: 0;
@@ -239,7 +239,7 @@ body {
 
 
 #app.game .city_screen .panel {
-  background: url('images/background.png');
+  background: url('/images/background.png');
   border: 2px solid #304db2;
   position: relative;
 }
@@ -391,11 +391,11 @@ body {
 }
 
 #app.game .city_screen .resources .resource span.good::before {
-  background-image: url('images/resources.png');
+  background-image: url('/images/resources.png');
 }
 
 #app.game .city_screen .resources .resource span.bad::before {
-  background-image: url('images/resources_bad.png');
+  background-image: url('/images/resources_bad.png');
 }
 
 #app.game .city_screen .units_panel {
@@ -431,7 +431,7 @@ body {
 
 #app.game .city_screen .food_storage .food_progress .food_item::before {
   content: '';
-  background-image: url('images/resources.png');
+  background-image: url('/images/resources.png');
   background-size: 48px;
   image-rendering: pixelated;
   position: absolute;
@@ -498,12 +498,12 @@ body {
 }
 
 #app.game .city_screen .build_panel .build_progress {
-  background: url('images/background.png');
+  background: url('/images/background.png');
 }
 
 #app.game .city_screen .build_panel .build_progress .shield_item::before {
   content: '';
-  background-image: url('images/resources.png');
+  background-image: url('/images/resources.png');
   background-size: 48px;
   background-position: -16px 0;
   image-rendering: pixelated;
