@@ -7,7 +7,7 @@ import Game from '../Game'
 import { Easing, Tween } from 'three/examples/jsm/libs/tween.module.js'
 import * as TweenHelper from '../tween'
 import City from '../City'
-import Advance from '../advances'
+import Advance from '../Advances'
 
 export enum Unit {
   Settlers='settlers',
@@ -88,6 +88,7 @@ export default abstract class BaseUnit {
     this.player = player
 
     this.spawn()
+    this.game.scene.add(this.object)
   }
 
   get class(): UnitClass {
