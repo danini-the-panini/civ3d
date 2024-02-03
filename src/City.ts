@@ -18,7 +18,6 @@ export default class City {
   player: Player
   position: Point
   name: string
-  population: number = 0
   food: number = 0
   shields: number = 0
   currentProduction: Production = Militia
@@ -30,6 +29,7 @@ export default class City {
   destroyed = false
   private _resourceTiles: Tile[] = []
   private _size: number = 1
+  private _sizeMesh!: Mesh
 
   constructor(player: Player, position: Point, name: string) {
     this.player = player
@@ -47,9 +47,7 @@ export default class City {
     this.setResourceTiles()
   }
 
-  static createObject(size: number, object = new Object3D()): Object3D {
-    object.add(new Mesh(ResourceManager.citySlab.geom, new MeshPhongMaterial({ color: 'magenta' })))
-    object.add(new Mesh(ResourceManager.cityGrid.geom, new MeshPhongMaterial({ color: '#822014' })))
+  static createSizeNumber(size: number): Mesh {
     let text = new Mesh(
       new TextGeometry(size.toString(), { font: ResourceManager.font, size: 1, height: 0.1 }),
       new MeshPhongMaterial({ color: 'black' })
@@ -59,7 +57,12 @@ export default class City {
     text.position.x += 0.5 - text.geometry.boundingBox!.max.x / 2
     text.position.y += 0.1
     text.position.z -= 0.5 - text.geometry.boundingBox!.max.y / 2
-    object.add(text)
+    return text
+  }
+
+  static createObject(object = new Object3D()): Object3D {
+    object.add(new Mesh(ResourceManager.citySlab.geom, new MeshPhongMaterial({ color: 'magenta' })))
+    object.add(new Mesh(ResourceManager.cityGrid.geom, new MeshPhongMaterial({ color: '#822014' })))
 
     return object
   }
@@ -67,7 +70,8 @@ export default class City {
   static spawn(player: Player, position: Point, name: string) {
     let city = new City(player, [...position], name)
     
-    City.createObject(city.size, city.object)
+    City.createObject(city.object)
+    city.updateSizeMesh()
     city.object.position.set(...position3d(...city.position))
     player.game.scene.add(city.object)
     
@@ -91,6 +95,8 @@ export default class City {
 
   set size(value: number) {
     this._size = value
+    this.updateSizeMesh()
+    this.setResourceTiles()
     if (value === 0) {
       this.destroy()
       return
@@ -155,6 +161,14 @@ export default class City {
     return this.tradeTotal - this.corruption
   }
 
+  get population(): number {
+    let pop = 0;
+    for (let i = 0; i < this.size; i++) {
+      pop += 10000 * i
+    }
+    return pop
+  }
+
   startTurn() {
     // TODO: disorder
     
@@ -177,6 +191,7 @@ export default class City {
         this.food = this.foodRequired / 2
       }
     }
+    console.log(`FOOD: ${this.food}`)
 
     if (this.shieldIncome < 0) {
       // TODO: disband unit
@@ -308,6 +323,14 @@ export default class City {
 
   removeDestroyedUnits() {
     this.units = this.units.filter(u => !u.destroyed)
+  }
+
+  updateSizeMesh() {
+    if (this._sizeMesh) {
+      this.object.remove(this._sizeMesh)
+    }
+    this._sizeMesh = City.createSizeNumber(this.size)
+    this.object.add(this._sizeMesh)
   }
 
   destroy() {

@@ -93,6 +93,7 @@ export default class Player {
 
   startTurn() {
     this.units.filter(u => !u.destroyed).forEach(unit => unit.startTurn())
+    this.cities.filter(u => !u.destroyed).forEach(city => city.startTurn())
     this.selectedIndex = 0
   }
 

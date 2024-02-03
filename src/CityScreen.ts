@@ -167,7 +167,12 @@ export default class CityScreen {
     foodStorageHeader.innerHTML = '<h3>Food storage</h3>'
     foodStoragePanel.append(foodStorageHeader)
     this.foodStorage = document.createElement('div')
-    this.foodStorage.classList.add('food_storage')
+    this.foodStorage.classList.add('food_progress')
+    for (let i = 0; i < this.city.food; i++) {
+      let el = document.createElement('div')
+      el.classList.add('food_item')
+      this.foodStorage.append(el)
+    }
     foodStoragePanel.append(this.foodStorage)
     this.element.append(foodStoragePanel)
   }
@@ -237,7 +242,8 @@ export default class CityScreen {
       }
     })
 
-    let cityObject = City.createObject(this.city.size)
+    let cityObject = City.createObject()
+    cityObject.add(City.createSizeNumber(this.city.size))
     cityObject.position.set(...position3d(...this.city.position))
     this.mapScene.add(cityObject)
     this.createResourceObjects()
@@ -338,8 +344,6 @@ export default class CityScreen {
 
     let income = total - costs
     let coveredCosts = costs + Math.min(0, income)
-
-    console.log(`${[...element.classList][1]}: ${total}-${costs}: ${coveredCosts} / ${income}`)
 
     let parts = []
     if (coveredCosts) parts.push(coveredCosts)

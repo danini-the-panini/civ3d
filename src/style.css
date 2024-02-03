@@ -416,6 +416,31 @@ body {
   grid-area: food;
 }
 
+#app.game .city_screen .food_storage .food_progress {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+#app.game .city_screen .food_storage .food_progress .food_item {
+  width: 1rem;
+  max-width: 1rem;
+  height: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+#app.game .city_screen .food_storage .food_progress .food_item::before {
+  content: '';
+  background-image: url('images/resources.png');
+  background-size: 48px;
+  image-rendering: pixelated;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 1rem;
+}
+
 #app.game .city_screen .info_tabs {
   grid-area: info;
 }
