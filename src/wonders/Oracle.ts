@@ -1,9 +1,9 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class Oracle extends BaseWonder {
-  type = Wonder.Oracle
-  requires = Advance.Mysticism
-  production = 300
-  obsoleteBy = Advance.Religion
+  static type = Wonder.Oracle
+  static requires = Advance.Mysticism
+  static production = 300
+  static obsoleteBy = Advance.Religion
 }

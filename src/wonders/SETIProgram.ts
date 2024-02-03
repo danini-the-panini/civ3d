@@ -1,8 +1,8 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class SETIProgram extends BaseWonder {
-  type = Wonder.SETIProgram
-  requires = Advance.Computers
-  production = 600
+  static type = Wonder.SETIProgram
+  static requires = Advance.Computers
+  static production = 600
 }

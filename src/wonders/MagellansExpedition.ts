@@ -1,8 +1,8 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class MagellansExpedition extends BaseWonder {
-  type = Wonder.MagellansExpedition
-  requires = Advance.Navigation
-  production = 400
+  static type = Wonder.MagellansExpedition
+  static requires = Advance.Navigation
+  static production = 400
 }

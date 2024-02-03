@@ -1,9 +1,9 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class Lighthouse extends BaseWonder {
-  type = Wonder.Lighthouse
-  requires = Advance.MapMaking
-  production = 200
-  obsoleteBy = Advance.Magnetism
+  static type = Wonder.Lighthouse
+  static requires = Advance.MapMaking
+  static production = 200
+  static obsoleteBy = Advance.Magnetism
 }

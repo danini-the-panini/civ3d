@@ -1,5 +1,5 @@
 import { Object3D } from 'three'
-import Advance from '../advances'
+import Advance from '../Advances'
 import City from '../City'
 
 export enum Building {

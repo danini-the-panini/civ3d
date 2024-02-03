@@ -1,9 +1,9 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class IsaacNewtonsCollege extends BaseWonder {
-  type = Wonder.IsaacNewtonsCollege
-  requires = Advance.TheoryOfGravity
-  production = 400
-  obsoleteBy = Advance.NuclearFission
+  static type = Wonder.IsaacNewtonsCollege
+  static requires = Advance.TheoryOfGravity
+  static production = 400
+  static obsoleteBy = Advance.NuclearFission
 }

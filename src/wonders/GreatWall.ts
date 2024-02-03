@@ -1,9 +1,9 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class GreatWall extends BaseWonder {
-  type = Wonder.GreatWall
-  requires = Advance.Masonry
-  production = 300
-  obsoleteBy = Advance.Gunpowder
+  static type = Wonder.GreatWall
+  static requires = Advance.Masonry
+  static production = 300
+  static obsoleteBy = Advance.Gunpowder
 }

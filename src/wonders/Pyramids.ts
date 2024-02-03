@@ -1,9 +1,9 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class Pyramids extends BaseWonder {
-  type = Wonder.Pyramids
-  requires = Advance.Masonry
-  production = 300
-  obsoleteBy = Advance.Communism
+  static type = Wonder.Pyramids
+  static requires = Advance.Masonry
+  static production = 300
+  static obsoleteBy = Advance.Communism
 }

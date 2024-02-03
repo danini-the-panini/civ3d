@@ -1,9 +1,9 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class CopernicusObservatory extends BaseWonder {
-  type = Wonder.CopernicusObservatory
-  requires = Advance.Astronomy
-  production = 300
-  obsoleteBy = Advance.Automobile
+  static type = Wonder.CopernicusObservatory
+  static requires = Advance.Astronomy
+  static production = 300
+  static obsoleteBy = Advance.Automobile
 }

@@ -1,4 +1,4 @@
-import Advance from './advances'
+import Advance from './Advances'
 import { calcf } from './calc_helpers'
 import City from './City'
 import Game from './Game'

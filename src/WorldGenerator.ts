@@ -423,7 +423,7 @@ export default class WorldGenerator {
 
     let landValue = 0
 
-    BFC_W_CENTRE.forEach(([dx, dy], i) => {
+    BFC_W_CENTRE.forEach(([dx, dy]) => {
       let val = 0
       let x2 = x+dx
       let y2 = y+dy

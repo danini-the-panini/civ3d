@@ -21,12 +21,6 @@ import Settlers from './units/Settlers'
 import BaseUnit, { Unit } from './units/BaseUnit'
 import Palace from './buildings/Palace'
 
-const DIRS8: Point[] = [
-  [ 1, -1], [ 0, -1], [-1, -1],
-  [ 1,  0],           [-1,  0],
-  [ 1,  1], [ 0,  0], [-1,  1]
-]
-
 export default class Game extends GameState {
   cameraControls: CameraControls
   navBar!: HTMLDivElement

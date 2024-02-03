@@ -1,4 +1,4 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseAirUnit from "./BaseAirUnit";
 import { Unit } from "./BaseUnit";
 

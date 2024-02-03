@@ -1,8 +1,8 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class DarwinsVoyage extends BaseWonder {
-  type = Wonder.DarwinsVoyage
-  requires = Advance.RailRoad
-  production = 300
+  static type = Wonder.DarwinsVoyage
+  static requires = Advance.RailRoad
+  static production = 300
 }

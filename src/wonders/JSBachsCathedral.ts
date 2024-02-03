@@ -1,8 +1,8 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class JSBachsCathedral extends BaseWonder {
-  type = Wonder.JSBachsCathedral
-  requires = Advance.Religion
-  production = 400
+  static type = Wonder.JSBachsCathedral
+  static requires = Advance.Religion
+  static production = 400
 }

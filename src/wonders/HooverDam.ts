@@ -1,8 +1,8 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class HooverDam extends BaseWonder {
-  type = Wonder.HooverDam
-  requires = Advance.Electronics
-  production = 600
+  static type = Wonder.HooverDam
+  static requires = Advance.Electronics
+  static production = 600
 }

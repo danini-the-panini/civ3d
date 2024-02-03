@@ -1,8 +1,8 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class ApolloProgram extends BaseWonder {
-  type = Wonder.ApolloProgram
-  requires = Advance.SpaceFlight
-  production = 600
+  static type = Wonder.ApolloProgram
+  static requires = Advance.SpaceFlight
+  static production = 600
 }

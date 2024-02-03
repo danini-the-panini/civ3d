@@ -1,8 +1,8 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseWonder, { Wonder } from "./BaseWonder";
 
 export default class ManhattanProject extends BaseWonder {
-  type = Wonder.ManhattanProject
-  requires = Advance.NuclearFission
-  production = 600
+  static type = Wonder.ManhattanProject
+  static requires = Advance.NuclearFission
+  static production = 600
 }

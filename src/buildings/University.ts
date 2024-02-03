@@ -1,4 +1,4 @@
-import Advance from "../advances";
+import Advance from "../Advances";
 import BaseBuilding, { Building } from "./BaseBuilding";
 
 export default class University extends BaseBuilding {
