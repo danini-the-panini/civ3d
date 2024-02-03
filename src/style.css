@@ -1,9 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Silkscreen&display=swap');
 
 @font-face {
-  font-family: "civ";
+  font-family: 'civ';
   src:
-    url("fonts/civ.ttf") format("truetype")
+    url('/fonts/civ.ttf') format('truetype')
 }
 
 html, body {
@@ -14,7 +14,7 @@ html, body {
   box-sizing: border-box;
   font-family: civ;
   font-size: 100%;
-  cursor: url('images/torch.png'), auto;
+  cursor: url('/images/torch.png'), auto;
   line-height: 0.7;
 }
 
